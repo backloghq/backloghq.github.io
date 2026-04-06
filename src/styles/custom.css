@@ -4,13 +4,21 @@
 	--sl-color-accent-high: #c3dafe;
 }
 
-/* Footer links */
-.sl-container:last-child::after {
-	content: '';
-	display: block;
+/* Footer legal links */
+.legal-links {
 	text-align: center;
 	padding: 1rem 0;
 	margin-top: 2rem;
 	border-top: 1px solid var(--sl-color-gray-5);
 	font-size: 0.85rem;
+	color: var(--sl-color-gray-3);
+}
+
+.legal-links a {
+	color: var(--sl-color-gray-3);
+	text-decoration: none;
+}
+
+.legal-links a:hover {
+	color: var(--sl-color-accent);
 }
