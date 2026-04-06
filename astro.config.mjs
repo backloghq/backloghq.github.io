@@ -10,6 +10,8 @@ export default defineConfig({
 			description: 'Persistent task management for Claude Code and agent teams.',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/backloghq/backlog' }],
 			customCss: ['./src/styles/custom.css'],
+			credits: true,
+			lastUpdated: true,
 			sidebar: [
 				{ label: 'Getting Started', slug: 'getting-started' },
 				{
