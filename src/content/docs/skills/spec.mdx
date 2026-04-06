@@ -1,0 +1,25 @@
+---
+title: /backlog:spec
+description: Write a spec document for a task.
+---
+
+Creates a detailed specification document and attaches it to a task.
+
+## What it does
+
+1. Reads the task description and any existing annotations
+2. Analyzes relevant parts of the codebase
+3. Writes a markdown spec covering requirements, design, and acceptance criteria
+4. Attaches the spec to the task via `task_doc_write`
+
+## Usage
+
+```
+/backlog:spec 3
+```
+
+Where `3` is the task ID. The spec is stored as a markdown document attached to the task, readable by `/backlog:implement` when it picks up the work.
+
+## Why specs matter
+
+Specs bridge sessions. You can spec a task today and implement it tomorrow (or let another agent handle it). The implementation skill reads the spec and follows it, so the design intent survives across sessions.

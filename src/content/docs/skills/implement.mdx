@@ -1,0 +1,30 @@
+---
+title: /backlog:implement
+description: Pick up a task and implement it.
+---
+
+Picks up the highest-priority ready task (or a specific one), implements it, and marks it done.
+
+## What it does
+
+1. Selects the next ready task (not blocked, highest urgency) or a specific task by ID
+2. Reads the attached spec if one exists
+3. Starts the task (marks it active, begins time tracking)
+4. Does the implementation work
+5. Marks the task done when complete
+
+## Usage
+
+```
+/backlog:implement
+```
+
+Or target a specific task:
+
+```
+/backlog:implement 3
+```
+
+## Spec-driven flow
+
+If the task has an attached spec (created via `/backlog:spec`), the implementation follows it. This is the core of doc-driven development: plan in one session, implement in another, with the spec as the contract between them.

@@ -1,0 +1,69 @@
+---
+title: Getting Started
+description: Install backlog and start managing tasks in Claude Code.
+---
+
+## Install
+
+### As a plugin (recommended)
+
+```bash
+claude --plugin-dir /path/to/backlog
+```
+
+This auto-derives a per-project data directory from your working directory. No config needed.
+
+### As a standalone MCP server
+
+Add to your project's `.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "tasks": {
+      "command": "node",
+      "args": ["/absolute/path/to/backlog/dist/index.js"],
+      "env": {
+        "TASKDATA": "/home/you/.local/share/backlog/my-project"
+      }
+    }
+  }
+}
+```
+
+The server creates the data directory on first run.
+
+## First steps
+
+### Plan some work
+
+```
+/backlog:plan Build a REST API with auth, rate limiting, and webhook support
+```
+
+This decomposes your goal into tasks with dependencies, priorities, and specs.
+
+### See what's on the backlog
+
+```
+/backlog:tasks
+```
+
+Shows pending, active, blocked, and overdue tasks.
+
+### Pick up a task
+
+```
+/backlog:implement
+```
+
+Grabs the highest-priority ready task, reads its spec, does the work, and marks it done.
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `TASKDATA` | Explicit path to project data directory. Takes precedence over `TASKDATA_ROOT`. |
+| `TASKDATA_ROOT` | Root directory for auto-derived per-project data. The server creates `<root>/<project-slug>/` based on CWD. |
+
+One of `TASKDATA` or `TASKDATA_ROOT` is required. In plugin mode, `TASKDATA_ROOT` is set automatically.

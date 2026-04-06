@@ -1,0 +1,30 @@
+---
+title: /backlog:plan
+description: Break down a goal into actionable tasks.
+---
+
+Decomposes a goal into 5--10 tasks with dependencies, priorities, and optional specs.
+
+## What it does
+
+1. Reads your codebase to understand the current state
+2. Breaks the goal into concrete, actionable tasks
+3. Sets dependencies between tasks (e.g., "design schema" before "implement API")
+4. Assigns priorities (H/M/L) based on criticality
+5. Writes spec documents for complex tasks
+6. Creates all tasks in the backlog
+
+## Usage
+
+```
+/backlog:plan Build a webhook system with retry logic and event filtering
+```
+
+## What you get
+
+- Tasks with clear descriptions and acceptance criteria
+- Dependency chains so work happens in the right order
+- Priority assignments based on blocking relationships
+- Spec documents attached to tasks that need detailed design
+
+The planner reads your codebase, so tasks reference actual files, patterns, and conventions in your project.

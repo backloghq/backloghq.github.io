@@ -1,0 +1,103 @@
+---
+title: Filter Syntax
+description: Filter expression reference for querying tasks.
+---
+
+The `task_list`, `task_modify`, `task_count`, and other tools accept a `filter` string for querying tasks.
+
+## Attribute matching
+
+```
+project:api
+status:pending
+priority:H
+agent:explorer
+```
+
+### Modifiers
+
+| Modifier | Example | Meaning |
+|----------|---------|---------|
+| `.before` | `due.before:tomorrow` | Due before tomorrow |
+| `.after` | `due.after:2025-01-01` | Due after Jan 1 |
+| `.is` | `status.is:pending` | Exact match |
+| `.not` | `priority.not:L` | Not low priority |
+| `.has` | `tags.has:api` | Has tag |
+| `.none` | `project.none:` | No project set |
+| `.startswith` | `description.startswith:Fix` | Starts with text |
+| `.endswith` | `project.endswith:api` | Ends with text |
+
+## Tags
+
+```
++urgent        # has the "urgent" tag
+-wontfix       # does NOT have the "wontfix" tag
+```
+
+## Virtual tags
+
+Virtual tags match computed task properties:
+
+| Tag | Matches |
+|-----|---------|
+| `+ACTIVE` | Currently being worked on |
+| `+BLOCKED` | Blocked by incomplete dependencies |
+| `+BLOCKING` | Blocking other tasks |
+| `+READY` | Unblocked and ready to start |
+| `+OVERDUE` | Past due date |
+| `+ANNOTATED` | Has annotations |
+| `+TAGGED` | Has at least one tag |
+| `+COMPLETED` | Completed tasks |
+| `+DELETED` | Deleted tasks |
+| `+PENDING` | Pending tasks |
+| `+WAITING` | Waiting (future wait date) |
+| `+RECURRING` | Recurring task templates |
+| `+TODAY` | Due today |
+| `+TOMORROW` | Due tomorrow |
+| `+WEEK` | Due this week |
+| `+DUE` | Has a due date |
+| `+SCHEDULED` | Has a scheduled date |
+| `+PROJECT` | Has a project |
+| `+PRIORITY` | Has a priority |
+
+## Date values
+
+Filters that take dates support natural language:
+
+| Value | Meaning |
+|-------|---------|
+| `today`, `tomorrow`, `yesterday` | Relative days |
+| `monday` ... `sunday` | Next occurrence of weekday |
+| `eow`, `eom`, `eoq`, `eoy` | End of week/month/quarter/year |
+| `3d`, `2w`, `1m` | Relative durations |
+| `now-7d`, `today+2w` | Compound expressions |
+| `2025-12-31` | Absolute dates |
+
+## IDs and UUIDs
+
+Bare numbers and UUIDs match directly:
+
+```
+1                            # task with ID 1
+a1b2c3d4-e5f6-...            # task with this UUID
+```
+
+## Text search
+
+Bare words match against task descriptions and annotations:
+
+```
+login redirect bug
+```
+
+## Boolean logic
+
+Combine filters with `and`, `or`, and parentheses:
+
+```
+project:api and priority:H
+(+urgent or +OVERDUE) and status:pending
+project:api +READY priority.not:L
+```
+
+Terms without explicit operators are combined with `and` by default.

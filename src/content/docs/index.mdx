@@ -1,0 +1,40 @@
+---
+title: backlog
+description: Persistent task management for Claude Code
+template: splash
+hero:
+  tagline: Persistent task management for Claude Code. Tasks survive sessions. Agents coordinate through shared state. Zero dependencies.
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/backloghq/backlog
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid>
+	<Card title="Cross-Session Persistence" icon="document">
+		Tasks survive between Claude Code sessions. Pick up where you left off — no context lost.
+	</Card>
+	<Card title="7 Skills" icon="puzzle">
+		Plan, standup, refine, spec, implement, handoff, and tasks. Slash commands for every workflow.
+	</Card>
+	<Card title="24 MCP Tools" icon="setting">
+		Full task lifecycle: create, modify, annotate, track time, manage dependencies, attach docs, archive.
+	</Card>
+	<Card title="Agent Coordination" icon="rocket">
+		Auto-assign tasks to spawned agents. Teams coordinate through shared task state.
+	</Card>
+	<Card title="Doc-Driven Development" icon="pencil">
+		Attach markdown specs to tasks. Implementation reads the spec, follows it, marks done.
+	</Card>
+	<Card title="Zero Dependencies" icon="approve-check-circle">
+		Pure TypeScript. No external binaries, no databases. Works everywhere Node.js runs.
+	</Card>
+</CardGrid>

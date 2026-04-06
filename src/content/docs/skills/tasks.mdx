@@ -1,0 +1,39 @@
+---
+title: /backlog:tasks
+description: View the current task backlog.
+---
+
+Shows a structured overview of your backlog, grouped by status.
+
+## What it does
+
+1. Queries all pending, active, blocked, and overdue tasks
+2. Groups them by status with counts
+3. Shows key fields: ID, description, priority, project, due date, tags
+4. Highlights overdue and blocked items
+
+## Usage
+
+```
+/backlog:tasks
+```
+
+## Example output
+
+```
+## Active (1)
+  3  [H] Implement auth middleware          project:api  due:2025-06-15
+
+## Blocked (1)
+  5  [M] Add rate limiting                  project:api  blocked by:3
+
+## Pending (3)
+  1  [H] Design database schema             project:api
+  4  [M] Write API documentation            project:api  +docs
+  6  [L] Set up CI pipeline                 project:infra
+
+## Overdue (1)
+  2  [H] Fix login redirect bug             project:auth  due:2025-06-01
+```
+
+Use this as your daily starting point to see what needs attention.

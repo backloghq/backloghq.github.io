@@ -1,0 +1,60 @@
+---
+title: Tools Reference
+description: All 24 MCP tools provided by backlog.
+---
+
+These are the MCP tools exposed by the backlog server. Skills orchestrate these tools into workflows, but you can also call them directly.
+
+## Task lifecycle
+
+| Tool | Purpose |
+|------|---------|
+| `task_add` | Create a task with description, project, tags, priority, due date, dependencies |
+| `task_modify` | Update attributes on existing tasks |
+| `task_done` | Mark task(s) complete |
+| `task_delete` | Delete task(s) |
+| `task_start` | Mark a task as actively being worked on (starts time tracking) |
+| `task_stop` | Stop active time tracking |
+| `task_log` | Record an already-completed task |
+| `task_duplicate` | Copy a task with optional modifications |
+| `task_undo` | Undo the last modification |
+
+## Querying
+
+| Tool | Purpose |
+|------|---------|
+| `task_list` | Query tasks with [filter syntax](/filters/) — returns JSON array |
+| `task_info` | Get full detail for a single task by ID or UUID |
+| `task_count` | Count tasks matching a filter |
+| `task_projects` | List all project names |
+| `task_tags` | List all tags |
+
+## Annotations
+
+| Tool | Purpose |
+|------|---------|
+| `task_annotate` | Add annotation text to a task (great for cross-session context) |
+| `task_denotate` | Remove an annotation by exact text |
+
+## Documents
+
+| Tool | Purpose |
+|------|---------|
+| `task_doc_write` | Attach a markdown document to a task |
+| `task_doc_read` | Read a task's attached document |
+| `task_doc_delete` | Remove a task's attached document |
+
+## Bulk operations
+
+| Tool | Purpose |
+|------|---------|
+| `task_import` | Bulk import tasks from a JSON array |
+| `task_purge` | Permanently remove deleted tasks |
+
+## Archiving
+
+| Tool | Purpose |
+|------|---------|
+| `task_archive` | Move old completed/deleted tasks to archive segments |
+| `task_archive_list` | List available archive segments |
+| `task_archive_load` | Load archived tasks for inspection |
