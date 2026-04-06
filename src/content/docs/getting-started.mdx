@@ -5,13 +5,22 @@ description: Install backlog and start managing tasks in Claude Code.
 
 ## Install
 
-### As a plugin (recommended)
+### From the marketplace (recommended)
+
+```
+/plugin marketplace add backloghq/backlog
+/plugin install backlog@backloghq-backlog
+```
+
+### From source
 
 ```bash
+git clone https://github.com/backloghq/backlog.git
+cd backlog && npm install && npm run build
 claude --plugin-dir /path/to/backlog
 ```
 
-This auto-derives a per-project data directory from your working directory. No config needed.
+Both methods auto-derive a per-project data directory from your working directory. No config needed.
 
 ### As a standalone MCP server
 
