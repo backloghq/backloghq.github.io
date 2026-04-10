@@ -1,0 +1,101 @@
+---
+title: Authentication
+description: Bearer tokens, multi-agent tokens, JWT, and custom auth.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Auth Modes
+
+<Tabs>
+<TabItem label="Bearer Token">
+
+Simplest option — one token for all clients:
+
+```bash
+npx agentdb --http --auth-token my-secret-token
+```
+
+Clients include `Authorization: Bearer my-secret-token` in requests.
+
+</TabItem>
+<TabItem label="Multi-Agent Tokens">
+
+Different tokens for different agents — each gets its own identity and permissions:
+
+```typescript
+import { startHttp } from "@backloghq/agentdb/mcp";
+
+await startHttp("./data", {
+  authTokens: {
+    "planner-secret": {
+      agentId: "planner",
+      permissions: { read: true, write: true, admin: true },
+    },
+    "worker-secret": {
+      agentId: "worker",
+      permissions: { read: true, write: true, admin: false },
+    },
+  },
+});
+```
+
+</TabItem>
+<TabItem label="JWT">
+
+Validate JWTs from your identity provider:
+
+```typescript
+import { startHttp } from "@backloghq/agentdb/mcp";
+import { createJwtAuth } from "@backloghq/agentdb/mcp";
+
+await startHttp("./data", {
+  authFn: createJwtAuth({
+    jwksUrl: "https://your-provider/.well-known/jwks.json",
+    audience: "agentdb",
+    issuer: "https://your-provider",
+  }),
+});
+```
+
+</TabItem>
+<TabItem label="Custom">
+
+Plug in any auth logic:
+
+```typescript
+await startHttp("./data", {
+  authFn: async (req) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    const user = await validateWithYourSystem(token);
+    return user ? { agentId: user.id } : null;
+  },
+});
+```
+
+</TabItem>
+</Tabs>
+
+## Permissions
+
+Three levels: `read`, `write`, `admin`. Permission hierarchy: admin implies write, write implies read.
+
+| Level | Operations |
+|-------|-----------|
+| `read` | find, count, schema, distinct, stats, history, archive_list, archive_load, export |
+| `write` | insert, update, upsert, delete, batch, undo, embed, vector_upsert, import |
+| `admin` | create, drop, purge, archive |
+
+## Rate Limiting & CORS
+
+```bash
+npx agentdb --http --auth-token secret --rate-limit 100 --cors https://app.example.com
+```
+
+## Security Features
+
+- **Timing-safe** token comparison (prevents timing attacks)
+- **HSTS** header on HTTP transport
+- **Session limits** — max 100 concurrent sessions, 30-minute idle timeout
+- **Error sanitization** — filesystem paths stripped from error messages
+- **Audit logging** — every request logged with agent identity and timestamp

@@ -1,0 +1,62 @@
+---
+title: Real-time Notifications
+description: Event-driven agent coordination with db_subscribe.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Overview
+
+Agents can subscribe to collection changes and receive push notifications via SSE — no polling needed. Available on the HTTP MCP transport.
+
+```
+db_subscribe({ collection: "tasks" })     → subscribe
+db_unsubscribe({ collection: "tasks" })   → unsubscribe
+```
+
+When any agent modifies a record, all subscribers receive a notification:
+
+```json
+{
+  "event": "db_change",
+  "collection": "tasks",
+  "type": "insert",
+  "ids": ["abc-123"],
+  "agent": "planner",
+  "timestamp": "2026-04-10T12:00:00.000Z"
+}
+```
+
+## Programmatic Client
+
+Using the `@modelcontextprotocol/sdk` client:
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+
+const client = new Client({ name: "my-agent", version: "1.0" });
+const transport = new StreamableHTTPClientTransport(
+  new URL("http://localhost:3000/mcp"),
+);
+
+// Set up notification handler BEFORE connecting
+client.setNotificationHandler(LoggingMessageNotificationSchema, (notification) => {
+  const data = JSON.parse(notification.params.data as string);
+  console.log(`${data.collection}: ${data.type} [${data.ids}]`);
+});
+
+await client.connect(transport);
+await client.callTool({ name: "db_subscribe", arguments: { collection: "tasks" } });
+```
+
+## Lifecycle
+
+- Subscriptions are **per-session** — each MCP client has its own
+- **Auto-cleanup** on session disconnect, idle timeout (30 min), or server shutdown
+- HTTP transport only (stdio is single-client)
+
+<Aside type="tip">
+  See the [multi-agent task board](/agentdb/guides/examples/#multi-agent-task-board) demo for a full working example with event-driven agents.
+</Aside>

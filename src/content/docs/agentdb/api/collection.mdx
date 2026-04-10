@@ -1,0 +1,160 @@
+---
+title: Collection API
+description: CRUD operations, filters, updates, and queries.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Creating a Collection
+
+```typescript
+const col = await db.collection("tasks");
+
+// With middleware
+const col = await db.collection("tasks", {
+  validate: (record) => { if (!record.title) throw new Error("title required"); },
+  computed: { wordCount: (r) => (r.title as string)?.split(" ").length },
+  virtualFilters: { "+OVERDUE": (r) => (r.dueDate as string) < new Date().toISOString() },
+  textSearch: true,
+});
+```
+
+## Insert
+
+```typescript
+// Single record (auto-generates _id)
+const id = await col.insert({ title: "Fix bug", status: "open" });
+
+// With agent identity
+const id = await col.insert(
+  { title: "Fix bug" },
+  { agent: "worker-1", reason: "triaged from backlog" }
+);
+
+// Batch insert (single disk write)
+const ids = await col.insertMany([
+  { title: "Task 1" },
+  { title: "Task 2" },
+]);
+```
+
+## Find
+
+```typescript
+// All records
+const result = col.find();
+// → { records: [...], total: 42, truncated: false }
+
+// JSON filter
+col.find({ filter: { status: "open", priority: { $gte: 3 } } });
+
+// Compact string filter
+col.find({ filter: "status:open priority.gte:3" });
+
+// With pagination, sort, summary mode
+col.find({
+  filter: { role: "admin" },
+  limit: 10,
+  offset: 20,
+  sort: "-createdAt",    // descending
+  summary: true,         // omit long text fields
+  maxTokens: 4000,       // stop when token budget exceeded
+});
+
+// Find by ID
+const record = col.findOne("abc-123");
+```
+
+## Filter Operators
+
+| Operator | Example | Description |
+|----------|---------|-------------|
+| `$eq` | `{ status: "open" }` | Equals (implicit) |
+| `$ne` | `{ status: { $ne: "closed" } }` | Not equals |
+| `$gt` | `{ score: { $gt: 5 } }` | Greater than |
+| `$gte` | `{ score: { $gte: 5 } }` | Greater than or equal |
+| `$lt` | `{ score: { $lt: 10 } }` | Less than |
+| `$lte` | `{ score: { $lte: 10 } }` | Less than or equal |
+| `$in` | `{ status: { $in: ["open", "review"] } }` | In array |
+| `$nin` | `{ tag: { $nin: ["spam"] } }` | Not in array |
+| `$exists` | `{ email: { $exists: true } }` | Field exists |
+| `$regex` | `{ name: { $regex: "^Al" } }` | Regex match |
+| `$not` | `{ score: { $not: { $gt: 10 } } }` | Logical NOT |
+| `$and` | `{ $and: [{ a: 1 }, { b: 2 }] }` | Logical AND |
+| `$or` | `{ $or: [{ a: 1 }, { b: 2 }] }` | Logical OR |
+
+## Update
+
+```typescript
+// Update matching records
+const count = await col.update(
+  { status: "open" },           // filter
+  { $set: { status: "closed" } }, // operators
+);
+
+// Update operators
+await col.update(filter, {
+  $set: { status: "closed" },     // set fields
+  $unset: { tempFlag: true },     // remove fields
+  $inc: { viewCount: 1 },         // increment numbers
+  $push: { tags: "reviewed" },    // push to arrays
+});
+
+// Optimistic locking
+await col.update(
+  { _id: "abc" },
+  { $set: { status: "claimed" } },
+  { expectedVersion: 3 },  // fails if record changed since version 3
+);
+```
+
+## Upsert
+
+```typescript
+const result = await col.upsert("task-1", { title: "Updated", status: "open" });
+// → { id: "task-1", action: "inserted" | "updated" }
+```
+
+## Delete
+
+```typescript
+const count = await col.remove({ status: "archived" });
+```
+
+## Count
+
+```typescript
+col.count();                           // all records
+col.count({ status: "open" });         // with filter
+```
+
+<Aside type="tip">
+  When a B-tree index exists on the filtered field and no TTL records exist, `count()` returns the index size directly — O(1) instead of scanning all records.
+</Aside>
+
+## Undo
+
+```typescript
+await col.undo(); // reverses the last mutation
+```
+
+## History
+
+```typescript
+const ops = col.history("abc-123");
+// → [{ ts, op: "set", id, data, prev, agent, reason }, ...]
+```
+
+## TTL (Time-to-Live)
+
+```typescript
+await col.insert({ title: "Temp" }, { ttl: 3600 }); // expires in 1 hour
+await col.cleanup(); // removes expired records
+```
+
+## Schema & Distinct
+
+```typescript
+col.schema();     // → { fields: [{ name, type, example }], sampleCount }
+col.distinct("status"); // → { field: "status", values: ["open", "closed"], count: 2 }
+```

@@ -1,0 +1,110 @@
+---
+title: Getting Started
+description: Install AgentDB and start using it in under 2 minutes.
+---
+
+import { Tabs, TabItem, Steps } from '@astrojs/starlight/components';
+
+## Install
+
+```bash
+npm install @backloghq/agentdb
+```
+
+## Three Ways to Use It
+
+<Tabs>
+<TabItem label="Library">
+
+```typescript
+import { AgentDB } from "@backloghq/agentdb";
+
+const db = new AgentDB("./data");
+await db.init();
+
+const tasks = await db.collection("tasks");
+await tasks.insert({ title: "Hello", status: "active" });
+
+const results = tasks.find({ filter: { status: "active" } });
+console.log(results.records);
+
+await db.close();
+```
+
+</TabItem>
+<TabItem label="MCP Server (stdio)">
+
+Add to your Claude Code config (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "agentdb": {
+      "command": "npx",
+      "args": ["agentdb", "--path", "./data"]
+    }
+  }
+}
+```
+
+Then use `db_find`, `db_insert`, `db_update` etc. from Claude Code.
+
+</TabItem>
+<TabItem label="MCP Server (HTTP)">
+
+```bash
+npx agentdb --path ./data --http --port 3000
+```
+
+Multiple agents connect to the same server with auth:
+
+```bash
+npx agentdb --path ./data --http --auth-token secret
+```
+
+</TabItem>
+</Tabs>
+
+## Quick Example
+
+<Steps>
+1. **Insert records**
+   ```typescript
+   const col = await db.collection("users");
+   await col.insert({ name: "Alice", role: "admin" });
+   await col.insert({ name: "Bob", role: "user" });
+   ```
+
+2. **Query with filters**
+   ```typescript
+   const admins = col.find({ filter: { role: "admin" } });
+   // → [{ _id: "...", name: "Alice", role: "admin" }]
+   ```
+
+3. **Update records**
+   ```typescript
+   await col.update({ role: "user" }, { $set: { verified: true } });
+   ```
+
+4. **Undo mistakes**
+   ```typescript
+   await col.undo(); // reverses the last mutation
+   ```
+</Steps>
+
+## Key Features
+
+- **28 MCP tools** — full CRUD, search, archive, vector search, subscriptions
+- **Zero native dependencies** — pure TypeScript, no compilation needed
+- **Crash-safe** — append-only WAL with immutable snapshots
+- **Undo built-in** — every mutation is reversible
+- **Agent identity** — tracks who changed what and why
+- **Vector search** — HNSW approximate nearest neighbor with 6 embedding providers
+- **Real-time notifications** — event-driven coordination via `db_subscribe`
+
+## Next Steps
+
+- [Collection API](/agentdb/api/collection/) — CRUD, filters, indexes
+- [MCP Tools](/agentdb/mcp/tools/) — all 28 tools reference
+- [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker
+- [Examples](/agentdb/guides/examples/) — 5 runnable demos

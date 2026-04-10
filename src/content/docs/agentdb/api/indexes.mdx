@@ -1,0 +1,85 @@
+---
+title: Indexes
+description: B-tree, composite, and bloom filter indexes for fast queries.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## B-tree Indexes
+
+Create indexes on frequently queried fields for O(log n) lookups instead of full scans.
+
+```typescript
+const col = await db.collection("tasks");
+
+// Create an index
+col.createIndex("status");
+
+// Queries on "status" now use the index automatically
+col.find({ filter: { status: "active" } });     // index used
+col.find({ filter: { status: { $gte: "a" } } }); // range queries too
+col.count({ status: "active" });                 // O(1) with index
+
+// List and drop
+col.listIndexes();      // → ["status"]
+col.dropIndex("status");
+```
+
+### Range Query Support
+
+Indexed fields support `$gt`, `$gte`, `$lt`, `$lte` operators:
+
+```typescript
+col.createIndex("score");
+col.find({ filter: { score: { $gte: 10, $lte: 90 } } }); // uses index
+```
+
+### Count Fast Path
+
+<Aside type="tip">
+  When a filter targets a single indexed field and no records have TTL, `count()` returns the index size directly — no record fetches needed.
+</Aside>
+
+## Composite Indexes
+
+For compound queries on multiple fields:
+
+```typescript
+col.createCompositeIndex(["status", "priority"]);
+
+// All-equality lookups use the composite index
+col.find({ filter: { status: "active", priority: "H" } });
+
+// Management
+col.listCompositeIndexes();  // → [["status", "priority"]]
+col.dropCompositeIndex(["status", "priority"]);
+```
+
+## Bloom Filters
+
+Probabilistic existence checks — fast "definitely not" answers:
+
+```typescript
+col.createBloomFilter("email", 50000); // expected items
+
+col.mightHave("email", "alice@example.com"); // true or false
+// true = maybe exists, false = definitely doesn't exist
+```
+
+## Index Suggestions
+
+AgentDB tracks which fields are queried most often:
+
+```typescript
+// After many queries...
+col.suggestIndexes(100);
+// → [{ field: "status", count: 342 }, { field: "role", count: 156 }]
+```
+
+## How Indexes Work
+
+- **Sorted array** with binary search — O(log n) equality and range lookups
+- **Reverse map** (id → key) for O(1) removal without knowing the indexed value
+- **Incrementally maintained** on every insert, update, upsert, delete
+- **Rebuilt on tail/watch** only for affected records (not full scan)
+- **Automatically used** by `find()`, `count()`, `update()`, and `remove()`

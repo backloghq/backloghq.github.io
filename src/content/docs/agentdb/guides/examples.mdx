@@ -1,0 +1,40 @@
+---
+title: Examples
+description: 5 runnable demos showing AgentDB in action.
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+All demos are in the [examples/](https://github.com/backloghq/agentdb/tree/main/examples) directory. They require [Ollama](https://ollama.com) with `llama3.2` model.
+
+## Demos
+
+<CardGrid>
+  <LinkCard title="Multi-Agent Task Board" description="Multiple AI agents collaborate on a shared task board. Event-driven via NOTIFY/LISTEN, optimistic locking, per-agent auth." href="https://github.com/backloghq/agentdb/tree/main/examples/multi-agent" />
+  <LinkCard title="RAG Knowledge Base" description="Ingest documents, embed with Ollama, answer questions via semantic search with source attribution." href="https://github.com/backloghq/agentdb/tree/main/examples/rag-knowledge-base" />
+  <LinkCard title="Research Pipeline" description="3-stage AI pipeline: Researcher → Analyst → Writer. Each stage triggers the next via notifications." href="https://github.com/backloghq/agentdb/tree/main/examples/research-pipeline" />
+  <LinkCard title="Multi-Model Code Review" description="Gemini generates code, Ollama reviews for security, Gemini writes tests. Two providers coordinated through AgentDB." href="https://github.com/backloghq/agentdb/tree/main/examples/code-review" />
+  <LinkCard title="Live Dashboard" description="Real-time CLI dashboard that watches collections and re-renders on every change." href="https://github.com/backloghq/agentdb/tree/main/examples/live-dashboard" />
+</CardGrid>
+
+## Quick Start
+
+```bash
+# Clone and build
+git clone https://github.com/backloghq/agentdb.git
+cd agentdb && npm install && npm run build
+
+# Run a demo
+cd examples/multi-agent && ./run.sh
+```
+
+## Key Patterns Demonstrated
+
+| Pattern | Demo |
+|---------|------|
+| Event-driven coordination | Multi-agent, Research pipeline |
+| Optimistic locking | Multi-agent (task claiming) |
+| Semantic search / RAG | RAG Knowledge Base |
+| Multi-provider orchestration | Code Review (Gemini + Ollama) |
+| Real-time monitoring | Live Dashboard |
+| Pipeline via notifications | Research Pipeline, Code Review |

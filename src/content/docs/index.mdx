@@ -1,41 +1,44 @@
 ---
-title: backlog
-description: Persistent task management for Claude Code
+title: BacklogHQ
+description: Tools for AI agents
 template: splash
 hero:
-  tagline: Persistent task management for Claude Code. Tasks survive sessions. Agents coordinate through shared state. Zero dependencies.
+  tagline: Open-source tools for building, coordinating, and managing AI agents.
   actions:
-    - text: Get Started
-      link: /getting-started/
+    - text: AgentDB Docs
+      link: /agentdb/getting-started/
       icon: right-arrow
-    - text: View on GitHub
-      link: https://github.com/backloghq/backlog
+    - text: Backlog Docs
+      link: /backlog/getting-started/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/backloghq
       variant: minimal
       icon: external
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## Features
+## Projects
 
 <CardGrid>
-	<Card title="Cross-Session Persistence" icon="document">
-		Tasks survive between Claude Code sessions. Pick up where you left off — no context lost.
-	</Card>
-	<Card title="7 Skills" icon="puzzle">
-		Plan, standup, refine, spec, implement, handoff, and tasks. Slash commands for every workflow.
-	</Card>
-	{/* Sync with registerTool count in backlog/src/index.ts */}
-	<Card title="24 MCP Tools" icon="setting">
-		Full task lifecycle: create, modify, annotate, track time, manage dependencies, attach docs, archive.
-	</Card>
-	<Card title="Agent Coordination" icon="rocket">
-		Auto-assign tasks to spawned agents. Teams coordinate through shared task state.
-	</Card>
-	<Card title="Doc-Driven Development" icon="pencil">
-		Attach markdown specs to tasks. Implementation reads the spec, follows it, marks done.
+	<LinkCard title="AgentDB" description="AI-first embedded database for LLM agents. Vector search, real-time notifications, 28 MCP tools. Zero native dependencies." href="/agentdb/getting-started/" />
+	<LinkCard title="Backlog" description="Persistent task management for Claude Code. Tasks survive sessions. Agents coordinate through shared state." href="/backlog/getting-started/" />
+</CardGrid>
+
+## Why BacklogHQ?
+
+<CardGrid>
+	<Card title="Built for Agents" icon="rocket">
+		Every tool is designed for how AI agents actually work — MCP-first, event-driven, crash-safe.
 	</Card>
 	<Card title="Zero Dependencies" icon="approve-check-circle">
 		Pure TypeScript. No external binaries, no databases. Works everywhere Node.js runs.
+	</Card>
+	<Card title="Open Source" icon="github">
+		MIT licensed. Use, modify, contribute. Built in the open.
+	</Card>
+	<Card title="Production Ready" icon="setting">
+		Benchmarked, tested (600+ tests each), reviewed through multiple security and architecture audits.
 	</Card>
 </CardGrid>

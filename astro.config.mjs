@@ -6,9 +6,9 @@ export default defineConfig({
 	site: 'https://backloghq.io',
 	integrations: [
 		starlight({
-			title: 'backlog',
-			description: 'Persistent task management for Claude Code and agent teams.',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/backloghq/backlog' }],
+			title: 'BacklogHQ',
+			description: 'Open-source tools for AI agents.',
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/backloghq' }],
 			customCss: ['./src/styles/custom.css'],
 			components: {
 				Footer: './src/components/Footer.astro',
@@ -16,22 +16,56 @@ export default defineConfig({
 			credits: true,
 			lastUpdated: true,
 			sidebar: [
-				{ label: 'Getting Started', slug: 'getting-started' },
 				{
-					label: 'Skills',
+					label: 'AgentDB',
 					items: [
-						{ label: 'Overview', slug: 'skills/overview' },
-						{ label: '/backlog:tasks', slug: 'skills/tasks' },
-						{ label: '/backlog:plan', slug: 'skills/plan' },
-						{ label: '/backlog:standup', slug: 'skills/standup' },
-						{ label: '/backlog:refine', slug: 'skills/refine' },
-						{ label: '/backlog:spec', slug: 'skills/spec' },
-						{ label: '/backlog:implement', slug: 'skills/implement' },
-						{ label: '/backlog:handoff', slug: 'skills/handoff' },
+						{ label: 'Getting Started', slug: 'agentdb/getting-started' },
+						{
+							label: 'API',
+							items: [
+								{ label: 'Collection', slug: 'agentdb/api/collection' },
+								{ label: 'Indexes', slug: 'agentdb/api/indexes' },
+								{ label: 'Vector Search', slug: 'agentdb/api/vector-search' },
+							],
+						},
+						{
+							label: 'MCP',
+							items: [
+								{ label: 'Tools Reference', slug: 'agentdb/mcp/tools' },
+								{ label: 'Authentication', slug: 'agentdb/mcp/auth' },
+								{ label: 'Real-time Notifications', slug: 'agentdb/mcp/subscribe' },
+							],
+						},
+						{
+							label: 'Guides',
+							items: [
+								{ label: 'Deployment', slug: 'agentdb/guides/deployment' },
+								{ label: 'Examples', slug: 'agentdb/guides/examples' },
+							],
+						},
 					],
 				},
-				{ label: 'Tools Reference', slug: 'tools' },
-				{ label: 'Filter Syntax', slug: 'filters' },
+				{
+					label: 'Backlog',
+					items: [
+						{ label: 'Getting Started', slug: 'backlog/getting-started' },
+						{
+							label: 'Skills',
+							items: [
+								{ label: 'Overview', slug: 'backlog/skills/overview' },
+								{ label: '/backlog:tasks', slug: 'backlog/skills/tasks' },
+								{ label: '/backlog:plan', slug: 'backlog/skills/plan' },
+								{ label: '/backlog:standup', slug: 'backlog/skills/standup' },
+								{ label: '/backlog:refine', slug: 'backlog/skills/refine' },
+								{ label: '/backlog:spec', slug: 'backlog/skills/spec' },
+								{ label: '/backlog:implement', slug: 'backlog/skills/implement' },
+								{ label: '/backlog:handoff', slug: 'backlog/skills/handoff' },
+							],
+						},
+						{ label: 'Tools Reference', slug: 'backlog/tools' },
+						{ label: 'Filter Syntax', slug: 'backlog/filters' },
+					],
+				},
 			],
 		}),
 	],

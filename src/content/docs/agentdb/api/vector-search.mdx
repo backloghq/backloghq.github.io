@@ -1,0 +1,108 @@
+---
+title: Vector Search
+description: Semantic search with embeddings and HNSW approximate nearest neighbor.
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Two Approaches
+
+<Tabs>
+<TabItem label="Explicit Vectors (no provider)">
+
+Store and search pre-computed vectors directly:
+
+```typescript
+const col = await db.collection("docs");
+
+// Store vectors
+await col.insertVector("doc1", [0.1, 0.2, 0.3], { title: "Introduction" });
+await col.insertVector("doc2", [0.4, 0.5, 0.6], { title: "Advanced Topics" });
+
+// Search by vector
+const results = col.searchByVector([0.1, 0.2, 0.3], {
+  limit: 10,
+  filter: { status: "published" }, // optional attribute filter
+});
+// → { records: [...], scores: [0.99, 0.87, ...] }
+```
+
+</TabItem>
+<TabItem label="Auto-Embedding (with provider)">
+
+Configure an embedding provider and AgentDB handles the rest:
+
+```typescript
+const db = new AgentDB("./data", {
+  embeddings: { provider: "ollama" }, // or openai, gemini, voyage, cohere
+});
+await db.init();
+
+const col = await db.collection("docs");
+await col.insert({ title: "My document", content: "Full text here..." });
+
+// Semantic search — text is auto-embedded on first search
+const results = await col.semanticSearch("related topics", {
+  limit: 5,
+  filter: { status: "published" },
+});
+```
+
+</TabItem>
+</Tabs>
+
+## Embedding Providers
+
+| Provider | Model | Auth | Batch |
+|----------|-------|------|-------|
+| **Ollama** | nomic-embed-text | None (local) | Sequential |
+| **OpenAI** | text-embedding-3-small | API key | Batch |
+| **Gemini** | gemini-embedding-001 | API key (free tier) | Batch |
+| **Voyage AI** | voyage-3-lite | API key | Batch |
+| **Cohere** | embed-english-v3.0 | API key | Batch |
+| **Custom HTTP** | any | Configurable | Configurable |
+
+### Configuration
+
+```typescript
+// Ollama (local, free)
+const db = new AgentDB("./data", {
+  embeddings: { provider: "ollama" },
+});
+
+// OpenAI
+const db = new AgentDB("./data", {
+  embeddings: { provider: "openai", apiKey: "sk-..." },
+});
+
+// Gemini (free tier)
+const db = new AgentDB("./data", {
+  embeddings: { provider: "gemini", apiKey: "..." },
+});
+
+// CLI
+// npx agentdb --embeddings ollama
+// GEMINI_API_KEY=... npx agentdb --embeddings gemini
+```
+
+## HNSW Index
+
+AgentDB uses an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search:
+
+- **Pure TypeScript** — no native dependencies
+- **Auto-initialized** from stored vectors on collection open
+- **Int8 quantization** for storage efficiency
+- **Cosine similarity** scoring
+
+<Aside type="note">
+  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally.
+</Aside>
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `db_vector_upsert` | Store a vector with metadata |
+| `db_vector_search` | Search by raw vector |
+| `db_semantic_search` | Search by text (requires provider) |
+| `db_embed` | Manually trigger embedding |

@@ -1,0 +1,75 @@
+---
+title: MCP Tools
+description: All 28 tools available via MCP.
+---
+
+## Tool Reference
+
+### CRUD
+
+| Tool | Description |
+|------|-------------|
+| `db_insert` | Insert one or many records into a collection |
+| `db_find` | Query records with filters, pagination, sorting |
+| `db_find_one` | Get a single record by ID |
+| `db_update` | Update records matching a filter with `$set`, `$unset`, `$inc`, `$push` |
+| `db_upsert` | Insert or update a record by ID |
+| `db_delete` | Delete records matching a filter |
+| `db_batch` | Execute multiple insert/delete operations atomically |
+| `db_count` | Count records matching a filter |
+
+### Discovery
+
+| Tool | Description |
+|------|-------------|
+| `db_collections` | List all collections with record counts |
+| `db_schema` | Inspect field types and examples from a sample |
+| `db_distinct` | Get unique values for a field |
+| `db_stats` | Database statistics |
+
+### History & Lifecycle
+
+| Tool | Description |
+|------|-------------|
+| `db_undo` | Reverse the last mutation |
+| `db_history` | View mutation history for a record |
+| `db_create` | Create a new collection |
+| `db_drop` | Soft-delete a collection |
+| `db_purge` | Permanently delete a dropped collection |
+
+### Archive
+
+| Tool | Description |
+|------|-------------|
+| `db_archive` | Move records to cold storage |
+| `db_archive_list` | List archive segments |
+| `db_archive_load` | Load archived records |
+
+### Search & Vectors
+
+| Tool | Description |
+|------|-------------|
+| `db_semantic_search` | Search by text meaning (requires embedding provider) |
+| `db_embed` | Manually trigger embedding for unembedded records |
+| `db_vector_upsert` | Store a pre-computed vector with metadata |
+| `db_vector_search` | Search by raw vector array |
+
+### Import/Export
+
+| Tool | Description |
+|------|-------------|
+| `db_export` | Export collections as JSON backup |
+| `db_import` | Import from a JSON backup |
+
+### Real-time (HTTP transport only)
+
+| Tool | Description |
+|------|-------------|
+| `db_subscribe` | Subscribe to collection change notifications |
+| `db_unsubscribe` | Stop receiving notifications |
+
+## Response Format
+
+All tools return `{ content: [{ type: "text", text: "..." }] }` with JSON-serialized results.
+
+Error responses return `{ isError: true, content: [{ type: "text", text: "error message" }] }` — tools never throw across the MCP boundary.
