@@ -92,9 +92,54 @@ npx agentdb --path ./data --http --auth-token secret
    ```
 </Steps>
 
+## Declarative Schemas
+
+Define typed, validated collections with `defineSchema()`:
+
+```typescript
+import { AgentDB, defineSchema } from "@backloghq/agentdb";
+
+const db = new AgentDB("./data");
+await db.init();
+
+const tasks = await db.collection(defineSchema({
+  name: "tasks",
+  fields: {
+    title: { type: "string", required: true, maxLength: 200 },
+    status: { type: "enum", values: ["pending", "active", "done"], default: "pending" },
+    priority: { type: "enum", values: ["H", "M", "L"], default: "M" },
+    tags: { type: "string[]" },
+    due: { type: "date", resolve: (v) => parseDateString(v) },
+  },
+  indexes: ["status", "priority"],
+  tagField: "tags",
+  textSearch: true,
+  computed: {
+    isUrgent: (r) => r.priority === "H" && r.status !== "done",
+  },
+  virtualFilters: {
+    "+OVERDUE": (r) => r.due && new Date(r.due) < new Date(),
+  },
+  hooks: {
+    afterInsert: (id, record, { collection }) => {
+      console.log(`Created task ${id}: ${record.title}`);
+    },
+  },
+}));
+```
+
+- **Typed fields** — `string`, `number`, `boolean`, `date`, `enum`, `string[]`, `number[]`, `object`, `autoIncrement`
+- **Validation** — `required`, `maxLength`, `min`/`max`, `pattern` constraints enforced on insert/upsert
+- **Defaults** — static values or functions, applied automatically on insert
+- **Field resolve** — transform values before validation (e.g., `"tomorrow"` → ISO date string)
+- **Auto-indexing** — B-tree indexes created on collection open
+- **Computed fields** — calculated on read, not stored
+- **Virtual filters** — domain-specific predicates like `+OVERDUE` usable in queries
+- **Lifecycle hooks** — `beforeInsert`, `afterInsert`, `afterUpdate`, `afterDelete` with collection context
+
 ## Key Features
 
-- **28 MCP tools** — full CRUD, search, archive, vector search, subscriptions
+- **32 MCP tools** — full CRUD, search, archive, vector search, blob storage, subscriptions
 - **Zero native dependencies** — pure TypeScript, no compilation needed
 - **Crash-safe** — append-only WAL with immutable snapshots
 - **Undo built-in** — every mutation is reversible
@@ -105,6 +150,6 @@ npx agentdb --path ./data --http --auth-token secret
 ## Next Steps
 
 - [Collection API](/agentdb/api/collection/) — CRUD, filters, indexes
-- [MCP Tools](/agentdb/mcp/tools/) — all 28 tools reference
+- [MCP Tools](/agentdb/mcp/tools/) — all 32 tools reference
 - [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker
 - [Examples](/agentdb/guides/examples/) — 5 runnable demos

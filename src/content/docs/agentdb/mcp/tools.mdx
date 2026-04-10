@@ -1,6 +1,6 @@
 ---
 title: MCP Tools
-description: All 28 tools available via MCP.
+description: All 32 tools available via MCP.
 ---
 
 ## Tool Reference
@@ -60,6 +60,15 @@ description: All 28 tools available via MCP.
 |------|-------------|
 | `db_export` | Export collections as JSON backup |
 | `db_import` | Import from a JSON backup |
+
+### Blob Storage
+
+| Tool | Description |
+|------|-------------|
+| `db_blob_write` | Attach a file (base64-encoded) to a record |
+| `db_blob_read` | Read a blob — returns base64 content + size |
+| `db_blob_list` | List blob names for a record |
+| `db_blob_delete` | Remove a blob from a record |
 
 ### Real-time (HTTP transport only)
 

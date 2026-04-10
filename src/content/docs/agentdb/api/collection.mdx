@@ -82,6 +82,19 @@ const record = col.findOne("abc-123");
 | `$not` | `{ score: { $not: { $gt: 10 } } }` | Logical NOT |
 | `$and` | `{ $and: [{ a: 1 }, { b: 2 }] }` | Logical AND |
 | `$or` | `{ $or: [{ a: 1 }, { b: 2 }] }` | Logical OR |
+| `$contains` | `{ tags: { $contains: "bug" } }` | Array membership |
+| `$text` | `{ $text: "auth", status: "open" }` | Full-text search combined with filters |
+
+### Compact Filter: Tags and Text
+
+```
++bug                    → { tags: { $contains: "bug" } }
+-old                    → { tags: { $not: { $contains: "old" } } }
++bug status:open        → AND: tags contains "bug" + status equals "open"
+auth login              → { $text: "auth login" }
+```
+
+Tag field is configurable via `tagField` in `defineSchema()`.
 
 ## Update
 
@@ -114,6 +127,18 @@ await col.update(
 const result = await col.upsert("task-1", { title: "Updated", status: "open" });
 // → { id: "task-1", action: "inserted" | "updated" }
 ```
+
+## Upsert Many
+
+```typescript
+const results = await col.upsertMany([
+  { _id: "task-1", title: "First", status: "open" },
+  { _id: "task-2", title: "Second", status: "done" },
+]);
+// [{ id: "task-1", action: "inserted" }, { id: "task-2", action: "updated" }]
+```
+
+Each doc must have an `_id` field. Schema defaults and hooks are applied per document.
 
 ## Delete
 
@@ -158,3 +183,27 @@ await col.cleanup(); // removes expired records
 col.schema();     // → { fields: [{ name, type, example }], sampleCount }
 col.distinct("status"); // → { field: "status", values: ["open", "closed"], count: 2 }
 ```
+
+## Blob Storage
+
+Attach files (text or binary) to records. Stored via StorageBackend — works on both filesystem and S3 transparently.
+
+```typescript
+// Write
+await col.writeBlob(recordId, "spec.md", "# Specification\n...");
+await col.writeBlob(recordId, "diagram.png", pngBuffer);
+
+// Read
+const content = await col.readBlob(recordId, "spec.md");
+
+// List
+const names = await col.listBlobs(recordId);
+// → ["spec.md", "diagram.png"]
+
+// Delete
+await col.deleteBlob(recordId, "spec.md");
+```
+
+<Aside type="note">
+  Blobs cascade-delete when the parent record is removed. Blob names must be alphanumeric with dots, hyphens, and underscores.
+</Aside>
