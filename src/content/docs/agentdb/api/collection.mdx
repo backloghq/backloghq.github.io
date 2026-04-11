@@ -5,6 +5,10 @@ description: CRUD operations, filters, updates, and queries.
 
 import { Aside } from '@astrojs/starlight/components';
 
+<Aside type="caution" title="v1.2.0 — Async read methods">
+  `findOne()`, `find()`, `findAll()`, `count()`, `search()`, and `queryView()` now return Promises. Add `await` to all calls.
+</Aside>
+
 ## Creating a Collection
 
 ```typescript
@@ -42,17 +46,17 @@ const ids = await col.insertMany([
 
 ```typescript
 // All records
-const result = col.find();
+const result = await col.find();
 // → { records: [...], total: 42, truncated: false }
 
 // JSON filter
-col.find({ filter: { status: "open", priority: { $gte: 3 } } });
+await col.find({ filter: { status: "open", priority: { $gte: 3 } } });
 
 // Compact string filter
-col.find({ filter: "status:open priority.gte:3" });
+await col.find({ filter: "status:open priority.gte:3" });
 
 // With pagination, sort, summary mode
-col.find({
+await col.find({
   filter: { role: "admin" },
   limit: 10,
   offset: 20,
@@ -62,7 +66,7 @@ col.find({
 });
 
 // Find by ID
-const record = col.findOne("abc-123");
+const record = await col.findOne("abc-123");
 ```
 
 ## Filter Operators
@@ -149,13 +153,29 @@ const count = await col.remove({ status: "archived" });
 ## Count
 
 ```typescript
-col.count();                           // all records
-col.count({ status: "open" });         // with filter
+await col.count();                           // all records
+await col.count({ status: "open" });         // with filter
 ```
 
 <Aside type="tip">
   When a B-tree index exists on the filtered field and no TTL records exist, `count()` returns the index size directly — O(1) instead of scanning all records.
 </Aside>
+
+## Indexes
+
+```typescript
+// B-tree index on a scalar field
+col.createIndex("status");
+
+// Composite index on multiple fields
+col.createCompositeIndex("status", "priority");
+
+// Array index — indexes each element of an array field
+col.createArrayIndex("tags");
+
+// Bloom filter for fast non-existence checks
+col.createBloomFilter("email");
+```
 
 ## Undo
 
@@ -166,7 +186,7 @@ await col.undo(); // reverses the last mutation
 ## History
 
 ```typescript
-const ops = col.history("abc-123");
+const ops = await col.history("abc-123");
 // → [{ ts, op: "set", id, data, prev, agent, reason }, ...]
 ```
 
@@ -180,8 +200,8 @@ await col.cleanup(); // removes expired records
 ## Schema & Distinct
 
 ```typescript
-col.schema();     // → { fields: [{ name, type, example }], sampleCount }
-col.distinct("status"); // → { field: "status", values: ["open", "closed"], count: 2 }
+await col.schema();     // → { fields: [{ name, type, example }], sampleCount }
+await col.distinct("status"); // → { field: "status", values: ["open", "closed"], count: 2 }
 ```
 
 ## Blob Storage

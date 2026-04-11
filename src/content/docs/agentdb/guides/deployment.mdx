@@ -26,6 +26,24 @@ npx agentdb --http --write-mode group
 npx agentdb --http --write-mode async
 ```
 
+## Storage Modes
+
+| Mode | Best for | Format | Notes |
+|------|----------|--------|-------|
+| `memory` (default) | < 10K records | In-memory with WAL | Fastest reads, all data in RAM |
+| `disk` | 1M+ records | JSONL + Parquet | Point lookups via JSONL, column scans via Parquet |
+| `auto` | Variable workloads | Starts memory, switches to disk | Switches when collection exceeds `diskThreshold` |
+
+```typescript
+// Explicit disk mode
+const db = new AgentDB("./data", { storageMode: "disk" });
+
+// Auto mode — promotes to disk at 10K records
+const db = new AgentDB("./data", { storageMode: "auto", diskThreshold: 10_000 });
+```
+
+Disk mode works with both filesystem and S3 backends.
+
 ## S3 Backend
 
 ```bash

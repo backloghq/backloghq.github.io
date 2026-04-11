@@ -25,7 +25,7 @@ await db.init();
 const tasks = await db.collection("tasks");
 await tasks.insert({ title: "Hello", status: "active" });
 
-const results = tasks.find({ filter: { status: "active" } });
+const results = await tasks.find({ filter: { status: "active" } });
 console.log(results.records);
 
 await db.close();
@@ -77,7 +77,7 @@ npx agentdb --path ./data --http --auth-token secret
 
 2. **Query with filters**
    ```typescript
-   const admins = col.find({ filter: { role: "admin" } });
+   const admins = await col.find({ filter: { role: "admin" } });
    // → [{ _id: "...", name: "Alice", role: "admin" }]
    ```
 
@@ -137,11 +137,37 @@ const tasks = await db.collection(defineSchema({
 - **Virtual filters** — domain-specific predicates like `+OVERDUE` usable in queries
 - **Lifecycle hooks** — `beforeInsert`, `afterInsert`, `afterUpdate`, `afterDelete` with collection context
 
+## Disk-Backed Storage
+
+For collections that outgrow memory, AgentDB can store data on disk using JSONL and Parquet files:
+
+```typescript
+// Disk mode for large collections
+const db = new AgentDB("./data", { storageMode: "disk" });
+
+// Auto mode — switches to disk when collection exceeds threshold
+const db = new AgentDB("./data", { storageMode: "auto", diskThreshold: 10_000 });
+
+// Per-collection via schema
+const events = await db.collection(defineSchema({
+  name: "events",
+  storageMode: "disk",
+  fields: { ... },
+}));
+```
+
+- **JSONL** for fast point lookups and append writes
+- **Parquet** for efficient column scans and analytical queries
+- **Lazy index loading** — indexes load on first query, not on open
+- **Incremental compaction** — merges small JSONL segments in the background
+- **Works on S3** — same disk format with the S3 backend
+
 ## Key Features
 
 - **32 MCP tools** — full CRUD, search, archive, vector search, blob storage, subscriptions
 - **Zero native dependencies** — pure TypeScript, no compilation needed
 - **Crash-safe** — append-only WAL with immutable snapshots
+- **Disk-backed storage** — JSONL + Parquet for collections beyond memory, with auto-switching
 - **Undo built-in** — every mutation is reversible
 - **Agent identity** — tracks who changed what and why
 - **Vector search** — HNSW approximate nearest neighbor with 6 embedding providers
