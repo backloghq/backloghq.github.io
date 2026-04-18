@@ -164,7 +164,7 @@ const events = await db.collection(defineSchema({
 
 ## Key Features
 
-- **32 MCP tools** — full CRUD, search, archive, vector search, blob storage, subscriptions
+- **MCP tools** — full CRUD, discovery, schema lifecycle, search, archive, vector search, blob storage, subscriptions
 - **Zero native dependencies** — pure TypeScript, no compilation needed
 - **Crash-safe** — append-only WAL with immutable snapshots
 - **Disk-backed storage** — JSONL + Parquet for collections beyond memory, with auto-switching
@@ -175,7 +175,9 @@ const events = await db.collection(defineSchema({
 
 ## Next Steps
 
-- [Collection API](/agentdb/api/collection/) — CRUD, filters, indexes
-- [MCP Tools](/agentdb/mcp/tools/) — all 32 tools reference
+- [Collection API](/agentdb/api/collection/) — CRUD, indexes, update operators
+- [Schemas](/agentdb/api/schemas/) — persisted schemas, the six-step lifecycle, bootstrap options
+- [Filters](/agentdb/api/filters/) — JSON and compact filter syntax
+- [MCP Tools](/agentdb/mcp/tools/) — full tools reference including schema lifecycle
 - [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker
-- [Examples](/agentdb/guides/examples/) — 5 runnable demos
+- [Examples](/agentdb/guides/examples/) — runnable demos

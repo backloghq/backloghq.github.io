@@ -1,0 +1,183 @@
+---
+title: Schemas
+description: Persisted schemas with agent context — define, persist, discover, diff, migrate, infer.
+---
+
+AgentDB treats schemas as **first-class runtime objects** that agents can inspect, evolve, and reason about — not just static type definitions enforced at insert time.
+
+:::note[Terminology]
+Three distinct concepts share the word "schema":
+
+- **`defineSchema()`** — code-level API; includes hooks, validators, computed fields. Lives in memory only; never serialized.
+- **`PersistedSchema`** — JSON-serializable subset (description, instructions, field types, constraints, indexes). Stored in `meta/{name}.schema.json`. This is what agents read and write.
+- **`db_schema`** — tool that samples actual records to infer field shapes dynamically. Does not read the `PersistedSchema` file; works even with no schema defined.
+:::
+
+## The six-step lifecycle
+
+### 1. Define — declare your schema in code
+
+```typescript
+import { AgentDB, defineSchema } from "@backloghq/agentdb";
+
+const db = new AgentDB("./data");
+await db.init();
+
+const tasks = await db.collection(defineSchema({
+  name: "tasks",
+  version: 1,
+  description: "Project tasks tracked by the team",
+  instructions: "Set priority based on urgency. Close done tasks after review.",
+  fields: {
+    title: { type: "string", required: true, maxLength: 200, description: "Short task summary" },
+    status: { type: "enum", values: ["pending", "done"], default: "pending", description: "Current state" },
+    priority: { type: "enum", values: ["H", "M", "L"], default: "M", description: "H=urgent, M=normal, L=backlog" },
+  },
+  indexes: ["status", "priority"],
+}));
+```
+
+`description`, `instructions`, and per-field `description` are **agent-facing context** — visible to any agent that calls `db_get_schema`.
+
+### 2. Persist — schema auto-saved to disk
+
+`defineSchema` collections automatically persist to `{dataDir}/meta/{name}.schema.json` on first open. The file captures the agent-facing parts (description, instructions, field types, constraints, indexes) but **not** runtime-only config (hooks, computed fields, resolve functions).
+
+The file survives restart, round-trips cleanly, and can be committed to source control.
+
+### 3. Discover — agents find and read schemas at runtime
+
+```
+db_collections          → lists all collections with record count + schema summary
+db_get_schema tasks     → returns full persisted schema: description, instructions,
+                          field types, constraints, indexes, version
+```
+
+Any agent can call these without knowing the codebase. They answer *"what data exists here and how should I use it?"* in two tool calls.
+
+### 4. Diff — preview schema changes before committing
+
+```
+db_diff_schema tasks { fields: { priority: { type: "enum", values: ["H","M","L"] } } }
+→ { added: ["priority"], changed: [], removed: [], warnings: [], impact: { ... } }
+```
+
+Uses the same merge semantics as `db_set_schema`, so a partial candidate accurately shows what would change — including record-impact counts for constraint tightening (e.g. how many strings would exceed a new `maxLength`).
+
+### 5. Migrate — apply bulk data changes
+
+```
+db_migrate tasks { ops: [{ op: "default", field: "priority", value: "M" }] }
+→ { scanned: 1200, updated: 843, unchanged: 357, failed: 0 }
+```
+
+`db_migrate` supports five ops: `set`, `unset`, `rename`, `default`, `copy`. Use `dryRun: true` to preview counts. Records that fail validation or are deleted mid-run land in `errors[]` with per-record context. Matching records are snapshotted at migration start — all matches are processed even if ops cause records to leave the filter mid-run.
+
+### 6. Infer — bootstrap a schema from existing data (cold start)
+
+When you have data but no schema, `db_infer_schema` samples the collection and proposes a `PersistedSchema`:
+
+```
+db_infer_schema tasks { sampleSize: 200 }
+→ { proposed: { fields: { title: { type: "string", maxLength: 180 }, ... } }, notes: [...] }
+```
+
+The proposed schema passes `validatePersistedSchema` and can be forwarded directly to `db_set_schema`.
+
+## Schema bootstrap — three ways in
+
+A schema file is a single JSON document describing one collection — same shape as `meta/{name}.schema.json` after `defineSchema` auto-persists:
+
+```json
+{
+  "name": "tickets",
+  "version": 1,
+  "description": "Customer support tickets — queue for the on-call team",
+  "instructions": "Set priority from customer tier (enterprise=high). Resolve before closing.",
+  "fields": {
+    "title":    { "type": "string", "required": true, "maxLength": 200, "description": "Short summary" },
+    "status":   { "type": "enum", "values": ["open", "in_progress", "resolved", "closed"], "default": "open" },
+    "priority": { "type": "enum", "values": ["low", "medium", "high"], "description": "Set from customer tier" },
+    "openedAt": { "type": "date", "required": true }
+  },
+  "indexes": ["status", "priority"]
+}
+```
+
+### Option 1 — auto-discovery
+
+Drop files into `<dataDir>/schemas/` and every `*.json` there is loaded on `db.init()`:
+
+```bash
+mkdir -p ./data/schemas
+cp tickets.json ./data/schemas/
+npx agentdb --path ./data
+# → [agentdb] schemas/*.json: loaded 1
+```
+
+Bad files are logged and skipped; missing directory is silently ignored. The schemas travel with the data directory on backup/move.
+
+### Option 2 — `--schemas` CLI flag
+
+Point at any path or glob; multiple flags are unioned:
+
+```bash
+npx agentdb --path ./data --schemas ./schemas/*.json
+npx agentdb --path ./data --schemas ./teams/users.json --schemas ./teams/tasks.json
+```
+
+Useful when schemas live in a separate repo or are generated by a build step.
+
+### Option 3 — at runtime via MCP tools
+
+Agents with admin permission can create collections and attach schemas without a restart:
+
+```
+db_set_schema {
+  collection: "tickets",
+  schema: {
+    description: "Customer support tickets",
+    instructions: "Set priority from customer tier.",
+    fields: {
+      title:  { type: "string", required: true, maxLength: 200 },
+      status: { type: "enum", values: ["open", "closed"], default: "open" }
+    },
+    indexes: ["status"]
+  }
+}
+```
+
+The schema file is written to `meta/tickets.schema.json` immediately. If the collection doesn't exist yet, it materializes on the first insert — no separate `db_create` call needed. Re-calling `db_set_schema` merges with the existing schema (overlay semantics).
+
+### Load order
+
+Auto-discover from `<dataDir>/schemas/` runs first during `db.init()`, then `--schemas` paths load on top as overlays. File properties win per-property; untouched persisted properties are preserved.
+
+## Forward compatibility
+
+Schema JSON files are forward-compatible by design. Unknown top-level and field-level properties are silently ignored by `validatePersistedSchema` — a file written by a newer version of AgentDB can be loaded by an older version without error. Unknown properties also round-trip cleanly: loading a schema with extra fields and persisting it back preserves those fields unmodified.
+
+This means you can safely commit schema files generated by a newer version of the library and roll back without data loss or startup errors.
+
+## Library API
+
+```typescript
+// Load JSON schema files at startup (overlay semantics, per-file isolation)
+const result = await db.loadSchemasFromFiles(["./schemas/tasks.json"]);
+// → { loaded: 1, skipped: 0, failed: [] }
+
+// Merge two persisted schemas with overlay (used internally by db_set_schema)
+import { mergePersistedSchemas } from "@backloghq/agentdb";
+const merged = mergePersistedSchemas(existing, incoming);
+// Overlay wins per-property, not per-field — updating { type } preserves { description }
+
+// Reconcile code-level schema with persisted schema at collection open time
+import { mergeSchemas } from "@backloghq/agentdb";
+const { persisted, warnings } = mergeSchemas(codeSchema, persistedSchema);
+// Code wins for validation, persisted wins for agent context
+```
+
+## Related tools
+
+See [MCP Tools → Schema Lifecycle](/agentdb/mcp/tools/#schema-lifecycle) for the full tool reference:
+`db_get_schema`, `db_set_schema`, `db_delete_schema`, `db_diff_schema`, `db_migrate`, `db_infer_schema`.

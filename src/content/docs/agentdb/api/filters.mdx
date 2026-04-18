@@ -1,0 +1,116 @@
+---
+title: Filters
+description: JSON and compact filter syntax for querying collections.
+---
+
+AgentDB supports two filter syntaxes. **JSON filters** are the primary form — expressive, composable, typed. **Compact string filters** are a concise shorthand for tool calls and quick queries.
+
+## JSON Filters
+
+```typescript
+// Equality (implicit)
+await tasks.find({ filter: { status: "active" } });
+
+// Comparison operators
+await tasks.find({ filter: { priority: { $gt: 3 } } });
+
+// Dot-notation for nested fields
+await tasks.find({ filter: { "metadata.tags": { $contains: "urgent" } } });
+
+// Logical operators
+await tasks.find({
+  filter: {
+    $or: [{ status: "active" }, { priority: { $gte: 5 } }],
+  },
+});
+```
+
+Top-level keys are implicitly ANDed.
+
+### Operators
+
+| Operator | Example | Meaning |
+|----------|---------|---------|
+| `$eq` | `{ status: "open" }` | Equals (implicit for scalar values) |
+| `$ne` | `{ status: { $ne: "closed" } }` | Not equals |
+| `$gt` | `{ score: { $gt: 5 } }` | Greater than |
+| `$gte` | `{ score: { $gte: 5 } }` | Greater than or equal |
+| `$lt` | `{ score: { $lt: 10 } }` | Less than |
+| `$lte` | `{ score: { $lte: 10 } }` | Less than or equal |
+| `$in` | `{ status: { $in: ["open", "review"] } }` | In array |
+| `$nin` | `{ tag: { $nin: ["spam"] } }` | Not in array |
+| `$exists` | `{ email: { $exists: true } }` | Field exists |
+| `$contains` | `{ tags: { $contains: "bug" } }` | Array membership |
+| `$startsWith` | `{ title: { $startsWith: "[URGENT]" } }` | String prefix |
+| `$endsWith` | `{ filename: { $endsWith: ".ts" } }` | String suffix |
+| `$regex` | `{ name: { $regex: "^Al" } }` | Regex match |
+| `$strLen` | `{ title: { $strLen: { $gt: 50 } } }` | String length comparison |
+| `$not` | `{ score: { $not: { $gt: 10 } } }` | Logical NOT |
+| `$and` | `{ $and: [{ a: 1 }, { b: 2 }] }` | Logical AND |
+| `$or` | `{ $or: [{ a: 1 }, { b: 2 }] }` | Logical OR |
+| `$text` | `{ $text: "auth", status: "open" }` | Full-text search combined with filters |
+
+### `$strLen` forms
+
+`$strLen` accepts either a number (exact match) or a comparison object:
+
+```typescript
+{ title: { $strLen: 20 } }                 // length === 20
+{ title: { $strLen: { $gt: 50 } } }        // length > 50
+{ title: { $strLen: { $gte: 10, $lte: 200 } } }  // bounded range
+```
+
+Non-string values never match (null, numbers, arrays all return `false`).
+
+## Compact String Filters
+
+Shorthand for tool calls and quick queries:
+
+```
+status:active                          → { status: "active" }
+status:active priority.gt:3            → { $and: [{ status: "active" }, { priority: { $gt: 3 } }] }
+name.contains:alice                    → { name: { $contains: "alice" } }
+(role:admin or role:mod)               → { $or: [{ role: "admin" }, { role: "mod" }] }
+tags.in:bug,feature                    → { tags: { $in: ["bug", "feature"] } }
+title.strLen:20                        → { title: { $strLen: 20 } }
+title.strLen.gt:10                     → { title: { $strLen: { $gt: 10 } } }
++bug                                   → { tags: { $contains: "bug" } }
+-old                                   → { tags: { $not: { $contains: "old" } } }
+auth error                             → { $text: "auth error" }
+status:active auth                     → { $and: [{ status: "active" }, { $text: "auth" }] }
+```
+
+### Modifier aliases
+
+These tokens appear after a `.` on the field name:
+
+`gt`, `gte`, `lt`, `lte`, `ne`, `contains`, `has`, `startsWith`, `starts`, `endsWith`, `ends`, `in`, `nin`, `exists`, `regex`, `match`, `eq`, `is`, `not`, `after`, `before`, `above`, `below`, `over`, `under`, `strLen`
+
+### Tags and text
+
+- `+tag` matches records where the tag field contains the value.
+- `-tag` excludes records where the tag field contains the value.
+- Unquoted bare words are interpreted as `$text` full-text search.
+
+The tag field name is configurable via `tagField` in `defineSchema()`.
+
+## Combining filters
+
+Logical `$and` / `$or` can nest to any depth:
+
+```typescript
+{
+  $or: [
+    { status: "critical" },
+    {
+      $and: [
+        { status: "open" },
+        { priority: { $gte: 3 } },
+        { "assignee.role": "oncall" },
+      ],
+    },
+  ],
+}
+```
+
+For most cases, the top-level implicit AND over sibling keys is enough — reach for `$and` explicitly only when you need to express an OR at a non-root level.

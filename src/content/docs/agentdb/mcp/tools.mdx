@@ -1,6 +1,6 @@
 ---
 title: MCP Tools
-description: All 32 tools available via MCP.
+description: Tools available via MCP — CRUD, discovery, schema lifecycle, search, archive, blobs, and more.
 ---
 
 ## Tool Reference
@@ -22,10 +22,21 @@ description: All 32 tools available via MCP.
 
 | Tool | Description |
 |------|-------------|
-| `db_collections` | List all collections with record counts |
-| `db_schema` | Inspect field types and examples from a sample |
+| `db_collections` | List all collections with record counts and schema summaries |
+| `db_schema` | Sample records to infer field shapes dynamically — works with or without a stored schema |
 | `db_distinct` | Get unique values for a field |
 | `db_stats` | Database statistics |
+
+### Schema Lifecycle
+
+| Tool | Description |
+|------|-------------|
+| `db_get_schema` | Read the persisted schema — description, instructions, field types, indexes |
+| `db_set_schema` | Create or update a persisted schema (admin-only, overlay merge) |
+| `db_delete_schema` | Delete a persisted schema (admin-only, idempotent) |
+| `db_diff_schema` | Preview what `db_set_schema` would change — structured diff with warnings and record-impact counts |
+| `db_migrate` | Declarative bulk record update via `set`/`unset`/`rename`/`default`/`copy` ops with dryRun and per-record error tracking |
+| `db_infer_schema` | Sample existing records and propose a `PersistedSchema` — cold-start schema bootstrap |
 
 ### History & Lifecycle
 
@@ -79,6 +90,6 @@ description: All 32 tools available via MCP.
 
 ## Response Format
 
-All tools return `{ content: [{ type: "text", text: "..." }] }` with JSON-serialized results.
+All tools return `{ content: [{ type: "text", text: "..." }] }` with JSON-serialized results. Tools with a declared `outputSchema` also include `structuredContent` for typed programmatic access — clients that know the shape can use it directly instead of parsing the text.
 
 Error responses return `{ isError: true, content: [{ type: "text", text: "error message" }] }` — tools never throw across the MCP boundary.

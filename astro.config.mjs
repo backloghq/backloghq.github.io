@@ -30,6 +30,8 @@ export default defineConfig({
 							label: 'API',
 							items: [
 								{ label: 'Collection', slug: 'agentdb/api/collection' },
+								{ label: 'Schemas', slug: 'agentdb/api/schemas' },
+								{ label: 'Filters', slug: 'agentdb/api/filters' },
 								{ label: 'Indexes', slug: 'agentdb/api/indexes' },
 								{ label: 'Vector Search', slug: 'agentdb/api/vector-search' },
 							],
