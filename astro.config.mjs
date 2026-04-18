@@ -2,8 +2,13 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
+// Per-machine overrides (gitignored). Use astro.config.local.mjs to set
+// e.g. vite.server.allowedHosts for an SSH hostname.
+const local = await import('./astro.config.local.mjs').catch(() => ({ default: {} }));
+
 export default defineConfig({
 	site: 'https://backloghq.io',
+	vite: local.default.vite,
 	integrations: [
 		starlight({
 			title: 'BacklogHQ',
@@ -12,6 +17,7 @@ export default defineConfig({
 			customCss: ['./src/styles/custom.css'],
 			components: {
 				Footer: './src/components/Footer.astro',
+				SiteTitle: './src/components/SiteTitle.astro',
 			},
 			credits: true,
 			lastUpdated: true,

@@ -1,9 +1,9 @@
 ---
 title: BacklogHQ
-description: Tools for AI agents
+description: Open-source tools for AI agents. MCP-first, event-driven, crash-safe.
 template: splash
 hero:
-  tagline: Open-source tools for building, coordinating, and managing AI agents.
+  tagline: Pure-TypeScript, zero-native-dependency tools that AI agents use as infrastructure. MCP-first, event-driven, crash-safe by default.
   actions:
     - text: AgentDB Docs
       link: /agentdb/getting-started/
@@ -19,26 +19,38 @@ hero:
 
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-## Projects
+<p class="eyebrow">projects</p>
+
+## Open-source projects
 
 <CardGrid>
-	<LinkCard title="AgentDB" description="AI-first embedded database for LLM agents. Vector search, real-time notifications, 32 MCP tools. Zero native dependencies." href="/agentdb/getting-started/" />
-	<LinkCard title="Backlog" description="Persistent task management for Claude Code. Tasks survive sessions. Agents coordinate through shared state." href="/backlog/getting-started/" />
+	<LinkCard
+		title="AgentDB"
+		description="AI-first embedded database for LLM agents. 32 MCP tools, declarative schemas, HNSW vector search, blob storage, real-time subscriptions."
+		href="/agentdb/getting-started/"
+	/>
+	<LinkCard
+		title="Backlog"
+		description="Persistent task management for Claude Code. Tasks survive sessions so work started by one agent can be picked up by another. 24 MCP tools, 7 skills."
+		href="/backlog/getting-started/"
+	/>
 </CardGrid>
 
-## Why BacklogHQ?
+<p class="eyebrow">why backloghq</p>
+
+## Design principles
 
 <CardGrid>
-	<Card title="Built for Agents" icon="rocket">
-		Every tool is designed for how AI agents actually work — MCP-first, event-driven, crash-safe.
+	<Card title="Agent-first">
+		MCP servers, declarative schemas, and tools designed for how agents actually work — not retrofitted from human-facing libraries.
 	</Card>
-	<Card title="Zero Dependencies" icon="approve-check-circle">
-		Pure TypeScript. No external binaries, no databases. Works everywhere Node.js runs.
+	<Card title="Zero native dependencies">
+		Pure TypeScript. Runs anywhere Node.js does. No native binaries, no external databases.
 	</Card>
-	<Card title="Open Source" icon="github">
-		MIT licensed. Use, modify, contribute. Built in the open.
+	<Card title="Crash-safe by default">
+		Append-only WAL, immutable snapshots, undo on every mutation. Tradeoffs are stated out loud, not hidden.
 	</Card>
-	<Card title="Production Ready" icon="setting">
-		Benchmarked, tested (600+ tests each), reviewed through multiple security and architecture audits.
+	<Card title="MIT, in the open">
+		600+ tests per package, security and architecture reviews on each release. Built in public on GitHub.
 	</Card>
 </CardGrid>
