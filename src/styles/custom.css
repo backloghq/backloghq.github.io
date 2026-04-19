@@ -382,18 +382,22 @@ starlight-sidebar-state-persist summary > .group-label > .large,
 
 /* ============================================================
    Home cards — flat with hairline border, soft 8px radius.
+   Per design system: hover raises --shadow-2, border unchanged,
+   background unchanged (keeps text contrast intact in dark mode).
    ============================================================ */
 .sl-markdown-content .card,
 .sl-markdown-content .sl-link-card {
   border-radius: var(--r-4);
   border: 1px solid var(--sl-color-hairline);
   box-shadow: none;
-  transition: border-color var(--dur-2) var(--ease-out),
-              background-color var(--dur-2) var(--ease-out);
+  transition: box-shadow var(--dur-2) var(--ease-out);
 }
 .sl-markdown-content .sl-link-card:hover {
-  border-color: var(--sl-color-accent);
-  background-color: var(--sl-color-gray-7, var(--sl-color-gray-6));
+  box-shadow: var(--shadow-2);
+}
+.sl-markdown-content .sl-link-card:hover .title,
+.sl-markdown-content .sl-link-card:focus-visible .title {
+  color: var(--sl-color-text-accent);
 }
 
 /* ============================================================
