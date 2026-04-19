@@ -1,7 +1,8 @@
-/* BacklogHQ Design System
- * Ink/paper foundation, signal blue accent, mono-forward dev aesthetic.
- * Tokens authored in `colors_and_type.css` from the design system bundle;
- * here we mirror them and map onto Starlight's --sl-* variables.
+/* BacklogHQ Design System — Starlight integration
+ * Mirrors the full token set from the design system bundle
+ * (`colors_and_type.css`) and maps it onto Starlight's --sl-* variables.
+ * Keep this file in sync with the design system. Utility classes below
+ * mirror the design system's helper set (`.panel`, `.kbd`, `.t-*`).
  */
 
 /* --------- Fonts --------- */
@@ -46,9 +47,11 @@
   src: url('/fonts/jetbrains-mono-700.woff2') format('woff2');
 }
 
-/* --------- Brand tokens --------- */
+/* ============================================================
+   Design system tokens
+   ============================================================ */
 :root {
-  /* Ink / paper */
+  /* ---------- Colors: ink / paper ---------- */
   --ink-000: #FAFAF7;
   --ink-050: #F4F4EE;
   --ink-100: #E8E8E1;
@@ -62,7 +65,7 @@
   --ink-900: #0B0D10;
   --ink-950: #06080A;
 
-  /* Signal blue */
+  /* ---------- Colors: signal blue ---------- */
   --blue-050: #EFF6FF;
   --blue-100: #DBEAFE;
   --blue-200: #C3DAFE;
@@ -74,14 +77,14 @@
   --blue-800: #1E40AF;
   --blue-900: #1A2744;
 
-  /* Op-log semantic */
+  /* ---------- Op-log semantics ---------- */
   --op-insert: #10B981;
   --op-update: #F59E0B;
   --op-delete: #EF4444;
   --op-undo:   #A855F7;
   --op-read:   #64748B;
 
-  /* Agent identity */
+  /* ---------- Agent identity ---------- */
   --agent-planner:    #3B82F6;
   --agent-explorer:   #14B8A6;
   --agent-researcher: #8B5CF6;
@@ -89,25 +92,106 @@
   --agent-reviewer:   #EC4899;
   --agent-triage:     #64748B;
 
-  /* Type */
+  /* ---------- Surface (light defaults) ---------- */
+  --bg:          var(--ink-000);
+  --bg-raise:    #FFFFFF;
+  --bg-sunk:     var(--ink-050);
+  --bg-code:     #0B0D10;
+  --fg:          var(--ink-900);
+  --fg-muted:    var(--ink-500);
+  --fg-faint:    var(--ink-400);
+  --fg-inverse:  var(--ink-000);
+  --border:      var(--ink-100);
+  --border-strong: var(--ink-200);
+  --accent:      var(--blue-500);
+  --accent-fg:   #FFFFFF;
+  --accent-soft-bg: var(--blue-050);
+  --accent-soft-fg: var(--blue-700);
+  --tag-bg:        var(--ink-050);
+  --tag-fg:        var(--ink-600);
+  --tag-accent-bg: var(--blue-050);
+  --tag-accent-fg: var(--blue-700);
+  --badge-ink-bg:  #0B0D10;
+
+  /* ---------- Type ---------- */
   --font-sans:    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --font-display: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 14px;
+  --fs-md:   16px;
+  --fs-lg:   19px;
+  --fs-xl:   23px;
+  --fs-2xl:  28px;
+  --fs-3xl:  36px;
+  --fs-4xl:  48px;
+  --fs-5xl:  64px;
+  --fs-6xl:  88px;
+
+  --lh-tight:  1.1;
+  --lh-snug:   1.25;
+  --lh-normal: 1.5;
+  --lh-loose:  1.7;
+
   --tracking-tighter: -0.035em;
   --tracking-tight:   -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.02em;
   --tracking-caps:    0.08em;
 
-  /* Radii */
-  --r-1: 2px; --r-2: 4px; --r-3: 6px; --r-4: 8px; --r-full: 999px;
+  /* ---------- Spacing ---------- */
+  --s-0:  0;
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
 
-  /* Motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-1: 90ms; --dur-2: 160ms; --dur-3: 260ms;
+  /* ---------- Radii ---------- */
+  --r-0:  0;
+  --r-1:  2px;
+  --r-2:  4px;
+  --r-3:  6px;
+  --r-4:  8px;
+  --r-5:  12px;
+  --r-full: 999px;
+
+  /* ---------- Shadows & rings ---------- */
+  --shadow-1: 0 1px 0 rgba(11,13,16,0.04);
+  --shadow-2: 0 1px 2px rgba(11,13,16,0.06), 0 1px 1px rgba(11,13,16,0.04);
+  --shadow-3: 0 4px 14px -4px rgba(11,13,16,0.12), 0 2px 4px rgba(11,13,16,0.06);
+  --shadow-4: 0 12px 32px -8px rgba(11,13,16,0.18), 0 4px 8px rgba(11,13,16,0.08);
+  --ring-accent: 0 0 0 2px var(--blue-200), 0 0 0 4px rgba(59,130,246,0.18);
+  --ring-inset:  inset 0 0 0 1px var(--border-strong);
+
+  /* ---------- Motion ---------- */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:    cubic-bezier(0.5, 0, 1, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 90ms;
+  --dur-2: 160ms;
+  --dur-3: 260ms;
+  --dur-4: 480ms;
+
+  /* ---------- Layout ---------- */
+  --container:       1240px;
+  --container-prose: 72ch;
+  --sidebar:         256px;
+  --gutter:          24px;
 }
 
-/* --------- Starlight variable mapping --------- */
-/* Light theme: paper background, ink text, signal blue accent. */
+/* ============================================================
+   Starlight variable mapping — light
+   ============================================================ */
 :root {
   --sl-font: 'Inter', var(--sl-font-system);
   --sl-font-mono: 'JetBrains Mono', var(--sl-font-system-mono);
@@ -116,7 +200,7 @@
   --sl-color-accent:      var(--blue-500);
   --sl-color-accent-high: var(--blue-900);
 
-  --sl-color-white: var(--ink-900);
+  --sl-color-white:  var(--ink-900);
   --sl-color-gray-1: var(--ink-700);
   --sl-color-gray-2: var(--ink-600);
   --sl-color-gray-3: var(--ink-400);
@@ -138,13 +222,37 @@
   --sl-color-hairline-shade:  var(--ink-050);
 }
 
-/* Dark theme: ink background, paper text. */
+/* ============================================================
+   Dark theme — surface tokens + Starlight mapping
+   ============================================================ */
 :root[data-theme='dark'] {
+  /* Surface overrides */
+  --bg:          var(--ink-900);
+  --bg-raise:    var(--ink-800);
+  --bg-sunk:     var(--ink-950);
+  --fg:          var(--ink-000);
+  --fg-muted:    var(--ink-300);
+  --fg-faint:    var(--ink-400);
+  --fg-inverse:  var(--ink-900);
+  --border:      #1F242B;
+  --border-strong: #2A313A;
+  --accent-soft-bg: rgba(59,130,246,0.12);
+  --accent-soft-fg: var(--blue-300);
+  --tag-bg:        rgba(255,255,255,0.06);
+  --tag-fg:        var(--ink-300);
+  --tag-accent-bg: rgba(59,130,246,0.15);
+  --tag-accent-fg: var(--blue-300);
+  --shadow-1: 0 1px 0 rgba(0,0,0,0.4);
+  --shadow-2: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-3: 0 4px 14px -4px rgba(0,0,0,0.6);
+  --shadow-4: 0 12px 32px -8px rgba(0,0,0,0.7);
+
+  /* Starlight mapping */
   --sl-color-accent-low:  var(--blue-900);
   --sl-color-accent:      var(--blue-500);
   --sl-color-accent-high: var(--blue-200);
 
-  --sl-color-white: var(--ink-000);
+  --sl-color-white:  var(--ink-000);
   --sl-color-gray-1: var(--ink-100);
   --sl-color-gray-2: var(--ink-200);
   --sl-color-gray-3: var(--ink-300);
@@ -164,9 +272,10 @@
   --sl-color-hairline-shade:  var(--ink-950);
 }
 
-/* --------- Type treatments --------- */
-/* Headings: mono for the big ones, sans for sub-heads — matches the
-   docs UI kit. Tighter tracking; sentence case kept by content. */
+/* ============================================================
+   Type treatments (Starlight content)
+   ============================================================ */
+/* Headings: mono for the big ones, sans for sub-heads. */
 .sl-markdown-content h1,
 .sl-markdown-content h2,
 .content-panel h1 {
@@ -187,7 +296,7 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* Mono for IDs, keyboard hints, and inline code stays mono via Starlight. */
+/* Inline code. */
 .sl-markdown-content code:not(pre code) {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -195,19 +304,18 @@
   border-radius: var(--r-2);
 }
 
-/* Sidebar group labels: caps mono dividers per design system. */
+/* Sidebar group labels: caps mono dividers. */
 starlight-sidebar-state-persist summary > .group-label > .large,
 .sidebar-content summary > .group-label > .large {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-caps);
   font-weight: 500;
   color: var(--sl-color-gray-3);
 }
 
-/* Site title in nav: render `backlog` in Inter, `hq` in mono blue.
-   Starlight's title is a plain text node; we restyle via the wrapper. */
+/* Site title wrapper. */
 .site-title span,
 .site-title {
   font-family: var(--font-sans);
@@ -216,7 +324,7 @@ starlight-sidebar-state-persist summary > .group-label > .large,
   font-size: 17px;
 }
 
-/* Code blocks: sharp ink surface in both themes per spec. */
+/* Code blocks: sharp ink inside a soft frame. */
 .expressive-code .frame {
   border-radius: var(--r-4) !important;
 }
@@ -227,7 +335,7 @@ starlight-sidebar-state-persist summary > .group-label > .large,
 /* Tables: mono caps headers, hairline rows. */
 .sl-markdown-content table th {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-caps);
   font-weight: 500;
@@ -243,7 +351,7 @@ starlight-sidebar-state-persist summary > .group-label > .large,
   border-left-width: 3px;
 }
 
-/* Links inside content underline on hover only — keeps prose dense. */
+/* Content links underline on hover only — keeps prose dense. */
 .sl-markdown-content a:not(.sl-link-card):not(.card) {
   text-underline-offset: 3px;
   text-decoration-color: var(--sl-color-hairline-light);
@@ -252,9 +360,9 @@ starlight-sidebar-state-persist summary > .group-label > .large,
   text-decoration-color: var(--sl-color-accent);
 }
 
-/* --------- Splash hero --------- */
-/* The home page uses Starlight's `splash` template. Tighten the hero
-   typography to mono and add an eyebrow line via CSS. */
+/* ============================================================
+   Splash hero
+   ============================================================ */
 .hero h1 {
   font-family: var(--font-display);
   font-weight: 700;
@@ -272,31 +380,9 @@ starlight-sidebar-state-persist summary > .group-label > .large,
   letter-spacing: var(--tracking-tight);
 }
 
-/* Eyebrow utility: mono cursor-prefixed label. */
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--sl-color-accent);
-  font-weight: 500;
-  letter-spacing: var(--tracking-tight);
-  margin: 0 0 12px;
-}
-.eyebrow::before {
-  content: '› ';
-  opacity: 0.65;
-}
-
-/* Caps label — section divider. */
-.caps {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  color: var(--sl-color-gray-3);
-  font-weight: 500;
-}
-
-/* Project cards on the home page — flat with hairline border, soft 8px radius. */
+/* ============================================================
+   Home cards — flat with hairline border, soft 8px radius.
+   ============================================================ */
 .sl-markdown-content .card,
 .sl-markdown-content .sl-link-card {
   border-radius: var(--r-4);
@@ -310,7 +396,109 @@ starlight-sidebar-state-persist summary > .group-label > .large,
   background-color: var(--sl-color-gray-7, var(--sl-color-gray-6));
 }
 
-/* --------- Footer legal links --------- */
+/* ============================================================
+   Utility classes — ported from the design system
+   ============================================================ */
+.hairline { border-top: 1px solid var(--border); }
+.hairline-v { border-left: 1px solid var(--border); }
+
+.panel {
+  background: var(--bg-raise);
+  border: 1px solid var(--border);
+  border-radius: var(--r-4);
+}
+.panel-sharp {
+  background: var(--bg-raise);
+  border: 1px solid var(--border);
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--r-2);
+  background: var(--bg-raise);
+  color: var(--fg-muted);
+}
+
+/* Type utilities. */
+.t-h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tighter);
+  font-weight: 700;
+}
+.t-h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+}
+.t-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 600;
+}
+.t-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  font-weight: 600;
+}
+.t-body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  text-wrap: pretty;
+}
+.t-lead {
+  font-family: var(--font-sans);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-normal);
+  color: var(--sl-color-gray-3);
+  font-weight: 400;
+}
+.t-small { font-size: var(--fs-sm); }
+.t-muted { color: var(--sl-color-gray-3); }
+.t-faint { color: var(--sl-color-gray-4); }
+.t-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero", "ss01";
+}
+
+/* Caps label — section divider (mono, wide tracking). */
+.t-caps {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: var(--sl-color-gray-3);
+}
+
+/* Eyebrow — mono cursor-prefixed label. */
+.t-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--sl-color-accent);
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+  margin: 0 0 12px;
+}
+.t-eyebrow::before {
+  content: '› ';
+  opacity: 0.65;
+}
+
+/* ============================================================
+   Footer legal links
+   ============================================================ */
 .legal-links {
   text-align: center;
   padding: 1rem 0;
