@@ -41,7 +41,7 @@ Add to your Claude Code config (`~/.claude/settings.json`):
   "mcpServers": {
     "agentdb": {
       "command": "npx",
-      "args": ["agentdb", "--path", "./data"]
+      "args": ["@backloghq/agentdb", "--path", "./data"]
     }
   }
 }
@@ -53,13 +53,13 @@ Then use `db_find`, `db_insert`, `db_update` etc. from Claude Code.
 <TabItem label="MCP Server (HTTP)">
 
 ```bash
-npx agentdb --path ./data --http --port 3000
+npx @backloghq/agentdb --path ./data --http --port 3000
 ```
 
 Multiple agents connect to the same server with auth:
 
 ```bash
-npx agentdb --path ./data --http --auth-token secret
+npx @backloghq/agentdb --path ./data --http --auth-token secret
 ```
 
 </TabItem>

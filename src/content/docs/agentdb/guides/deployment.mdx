@@ -22,8 +22,8 @@ description: Deployment patterns for different agent architectures.
 | `async` | ~50x | Crash loses all unflushed | High-throughput |
 
 ```bash
-npx agentdb --http --write-mode group
-npx agentdb --http --write-mode async
+npx @backloghq/agentdb --http --write-mode group
+npx @backloghq/agentdb --http --write-mode async
 ```
 
 ## Storage Modes
@@ -47,7 +47,7 @@ Disk mode works with both filesystem and S3 backends.
 ## S3 Backend
 
 ```bash
-npx agentdb --backend s3 --bucket my-bucket --region us-east-1 --http
+npx @backloghq/agentdb --backend s3 --bucket my-bucket --region us-east-1 --http
 ```
 
 ```typescript
@@ -66,7 +66,7 @@ Requires `@backloghq/opslog-s3` (optional dependency).
 FROM node:25-alpine
 WORKDIR /app
 RUN npm install @backloghq/agentdb
-ENTRYPOINT ["npx", "agentdb"]
+ENTRYPOINT ["npx", "@backloghq/agentdb"]
 CMD ["--path", "/data", "--http", "--host", "0.0.0.0"]
 ```
 

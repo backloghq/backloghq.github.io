@@ -13,7 +13,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 Simplest option — one token for all clients:
 
 ```bash
-npx agentdb --http --auth-token my-secret-token
+npx @backloghq/agentdb --http --auth-token my-secret-token
 ```
 
 Clients include `Authorization: Bearer my-secret-token` in requests.
@@ -89,7 +89,7 @@ Three levels: `read`, `write`, `admin`. Permission hierarchy: admin implies writ
 ## Rate Limiting & CORS
 
 ```bash
-npx agentdb --http --auth-token secret --rate-limit 100 --cors https://app.example.com
+npx @backloghq/agentdb --http --auth-token secret --rate-limit 100 --cors https://app.example.com
 ```
 
 ## Security Features
