@@ -1,52 +1,127 @@
 ---
-title: Vector Search
-description: Semantic search with embeddings and HNSW approximate nearest neighbor.
+title: Search
+description: Hybrid (BM25 + semantic), BM25 lexical, and HNSW semantic search.
 ---
 
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-## Two Approaches
+AgentDB ships three search methods, ranked from most-recommended to most-specialised:
+
+1. **Hybrid** — BM25 + semantic fused via Reciprocal Rank Fusion. Best general-purpose ranker. Degrades gracefully to whichever arm is configured.
+2. **BM25** — pure lexical. No embedding provider required. Best for exact-term recall, code, IDs, error messages.
+3. **Semantic** — pure vector. Best for paraphrase recall and cross-lingual queries.
+
+## Hybrid Search
+
+`hybridSearch(query, opts?)` fuses ranked results from BM25 and semantic search using Reciprocal Rank Fusion (RRF, `k=60`). Each arm runs in parallel; per-arm runtime failures are absorbed (`.catch`), so a single arm error degrades the result rather than rejecting the call. Throws only when neither arm is configured (no `searchable` fields **and** no embedding provider).
+
+```typescript
+const docs = await db.collection("docs");
+
+const results = await docs.hybridSearch("login flow regression", {
+  limit: 10,
+  filter: { status: "open" },          // post-arm filter
+  candidateLimit: 50,                   // per-arm fetch before fusion (default max(limit*4, 50))
+  summary: true,                        // omit long text fields in returned records
+});
+// → { records: [...], scores: [0.0312, 0.0298, ...] }
+```
+
+### Degraded modes
+
+| Configuration | Behaviour |
+|---------------|-----------|
+| BM25 fields only (no provider) | Returns BM25-only results |
+| Provider only (no `searchable` fields) | Returns semantic-only results |
+| Both configured | Fused via RRF |
+| Neither configured | Throws |
+
+<Aside type="tip">
+  Set `searchable: true` on at least one string field via `defineSchema` (or via `db_set_schema`) to enable BM25. Configure an embedding provider on the `AgentDB` to enable semantic. Hybrid lights up automatically when both are present.
+</Aside>
+
+## BM25 (lexical)
+
+`bm25Search(query, opts?)` is a pure lexical search using BM25 ranking. OR-semantics: documents matching any query term rank by relevance. No embedding provider required.
+
+```typescript
+const results = await docs.bm25Search("auth token expiry", {
+  limit: 10,
+  filter: { status: "open" },
+  candidateLimit: 50,
+});
+
+// Lower-level: includes per-doc BM25 scores
+const scored = await docs.searchScored("auth token expiry");
+```
+
+### Tuning per collection
+
+```typescript
+const tickets = await db.collection(defineSchema({
+  name: "tickets",
+  fields: {
+    title:  { type: "string", searchable: true },
+    body:   { type: "string", searchable: true },
+    status: { type: "enum", values: ["open", "closed"] },
+  },
+  bm25: { k1: 1.2, b: 0.75 },  // defaults
+}));
+```
+
+- `k1` (default `1.2`) — term-frequency saturation. Higher values reward repeated terms more.
+- `b` (default `0.75`) — document-length normalisation. `0` disables length penalty; `1` fully normalises.
+
+### Tokenizer
+
+The tokenizer uses `[\p{L}\p{M}\p{N}]+` — Unicode letters, marks, and numbers. Accented Latin (`café`, `naïve`) and CJK (`東京`, `한글`) text indexes correctly. CJK is retained as whole-run tokens (no segmentation), so substring matching across CJK runs is not supported. Emoji are excluded.
+
+NFC/NFD normalisation is **not** applied — precomposed and decomposed forms are distinct tokens. Normalise input upstream if you mix forms.
+
+## Semantic (vector)
 
 <Tabs>
-<TabItem label="Explicit Vectors (no provider)">
+<TabItem label="Auto-embedding (with provider)">
+
+Configure an embedding provider on the `AgentDB` and the collection auto-embeds inserts:
+
+```typescript
+const db = new AgentDB("./data", {
+  embeddings: { provider: "ollama" },  // or openai, gemini, voyage, cohere
+});
+await db.init();
+
+const docs = await db.collection("docs");
+await docs.insert({ title: "My document", content: "Full text here..." });
+
+const results = await docs.semanticSearch("related topics", {
+  limit: 5,
+  filter: { status: "published" },
+});
+// → { records: [...], scores: [0.92, 0.81, ...] }
+```
+
+</TabItem>
+<TabItem label="Explicit vectors (no provider)">
 
 Store and search pre-computed vectors directly:
 
 ```typescript
 const col = await db.collection("docs");
 
-// Store vectors
 await col.insertVector("doc1", [0.1, 0.2, 0.3], { title: "Introduction" });
 await col.insertVector("doc2", [0.4, 0.5, 0.6], { title: "Advanced Topics" });
 
-// Search by vector
-const results = col.searchByVector([0.1, 0.2, 0.3], {
+const results = await col.searchByVector([0.1, 0.2, 0.3], {
   limit: 10,
-  filter: { status: "published" }, // optional attribute filter
+  filter: { status: "published" },
 });
 // → { records: [...], scores: [0.99, 0.87, ...] }
 ```
 
-</TabItem>
-<TabItem label="Auto-Embedding (with provider)">
-
-Configure an embedding provider and AgentDB handles the rest:
-
-```typescript
-const db = new AgentDB("./data", {
-  embeddings: { provider: "ollama" }, // or openai, gemini, voyage, cohere
-});
-await db.init();
-
-const col = await db.collection("docs");
-await col.insert({ title: "My document", content: "Full text here..." });
-
-// Semantic search — text is auto-embedded on first search
-const results = await col.semanticSearch("related topics", {
-  limit: 5,
-  filter: { status: "published" },
-});
-```
+<Aside type="caution">
+  `searchByVector` is **async** in v1.4 — returns `Promise<{ records, scores }>`. Pre-1.4 code that omitted `await` needs updating.
+</Aside>
 
 </TabItem>
 </Tabs>
@@ -65,7 +140,7 @@ const results = await col.semanticSearch("related topics", {
 ### Configuration
 
 ```typescript
-// Ollama (local, free)
+// Ollama (local, free) — dimensions auto-detected on first call
 const db = new AgentDB("./data", {
   embeddings: { provider: "ollama" },
 });
@@ -90,19 +165,45 @@ const db = new AgentDB("./data", {
 AgentDB uses an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search:
 
 - **Pure TypeScript** — no native dependencies
-- **Auto-initialized** from stored vectors on collection open
+- **Disk-mode rebuild on reopen** — index is reconstructed from stored vectors on collection open. Auto-detects dimensionality from the first vector (e.g. Ollama, where `provider.dimensions === 0` until first call).
 - **Int8 quantization** for storage efficiency
 - **Cosine similarity** scoring
 
 <Aside type="note">
-  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally.
+  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally. The on-disk text index is capped at 256 MB (~25–30K docs) — past this, BM25 throws `IndexFileTooLargeError`.
+</Aside>
+
+## v1.3 → v1.4 Migration
+
+v1.3 stored embeddings whose input text included `_id` (e.g. `"abc-123 my document content"`). Query embeddings used content only, so stored and query vectors lived in different regions of the embedding space — recall suffered noticeably. v1.4 excludes all `_`-prefixed meta fields (`_id`, `_version`, `_agent`, `_reason`, `_expires`, `_embedding`) from extraction.
+
+After upgrading, run `reembedAll()` once per embedded collection:
+
+```typescript
+const result = await docs.reembedAll();
+// → { embedded: 1200, failed: 0, errors: [] }
+
+if (result.failed > 0) {
+  for (const err of result.errors) {
+    console.warn(`batch ${err.batchIndex}: ${err.reason}`);
+  }
+}
+```
+
+Or via MCP: `db_reembed_all { collection: "docs" }` (admin-only, DESTRUCTIVE). Disk-mode collections compact mid-flight, so JSONL file count stays bounded even on large reembed runs.
+
+<Aside type="caution">
+  `reembedAll` returns `ReembedResult` (`{ embedded, failed, errors }`) in v1.4 — pre-1.4 it returned `number`. Existing callers must update result handling.
 </Aside>
 
 ## MCP Tools
 
 | Tool | Description |
 |------|-------------|
-| `db_vector_upsert` | Store a vector with metadata |
-| `db_vector_search` | Search by raw vector |
-| `db_semantic_search` | Search by text (requires provider) |
-| `db_embed` | Manually trigger embedding |
+| `db_bm25_search` | Lexical BM25 search — no provider required |
+| `db_hybrid_search` | BM25 + semantic fused via RRF |
+| `db_semantic_search` | Pure semantic search (requires provider) |
+| `db_vector_search` | Search by raw vector array |
+| `db_vector_upsert` | Store a pre-computed vector with metadata |
+| `db_embed` | Manually trigger embedding for unembedded records |
+| `db_reembed_all` | Force-reembed all records (admin-only, DESTRUCTIVE) — v1.3→v1.4 migration |

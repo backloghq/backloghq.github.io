@@ -3,6 +3,8 @@ title: Deployment
 description: Deployment patterns for different agent architectures.
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 ## Deployment Modes
 
 | Scenario | Pattern | Latency |
@@ -73,6 +75,56 @@ CMD ["--path", "/data", "--http", "--host", "0.0.0.0"]
 ```bash
 docker run -p 3000:3000 -v ./data:/data agentdb
 ```
+
+## Performance Knobs
+
+Four knobs tune embedding throughput, disk concurrency, and Parquet layout. All four sit on `AgentDBOptions` (db-wide defaults) **and** on `CollectionOptions` (per-collection overrides) — per-collection wins, db-wide fills the gap.
+
+```typescript
+const db = new AgentDB("./data", {
+  // Embedding provider call batching — records per provider call in
+  // embedUnembedded / reembedAll. Default 256.
+  embeddingBatchSize: 256,
+
+  // Concurrent disk reads in materializeCandidates (search candidate fetch).
+  // Default 16 for non-FS backends (S3); unbounded on local FS.
+  diskConcurrency: 16,
+
+  // Disk-mode LRU record cache size.
+  cacheSize: 1000,
+
+  // Parquet row-group size for column scans.
+  rowGroupSize: 50_000,
+
+  embeddings: { provider: "ollama" },
+});
+
+// Per-collection override
+const events = await db.collection(defineSchema({
+  name: "events",
+  storageMode: "disk",
+  embeddingBatchSize: 128,   // smaller batches for this collection
+  diskConcurrency: 32,       // higher QPS workload
+  fields: { /* ... */ },
+}));
+```
+
+### S3 sizing guidance
+
+`diskConcurrency: 16` is a deliberate default for S3-backed deployments — it keeps each prefix below per-prefix request rate limits while still saturating bandwidth for typical search workloads. Tune from there:
+
+| Workload | `diskConcurrency` |
+|----------|-------------------|
+| Default (mixed) | `16` |
+| Very high QPS, dedicated S3 prefix | `32` |
+| Sharing a prefix with other tenants | `8` |
+| Local filesystem | unbounded (flag ignored) |
+
+`embeddingBatchSize` is provider-bound: OpenAI, Voyage, Cohere, and Gemini accept hundreds per call; Ollama is sequential and benefits less from large batches.
+
+<Aside type="caution">
+  When you pass a `defineSchema` result to `db.collection(schema, opts)`, `schema.collectionOptions` **completely replaces** the `opts` argument. Set `embeddingBatchSize` / `diskConcurrency` inside `defineSchema(...)` for schema-defined collections, or as db-wide defaults on `AgentDBOptions`.
+</Aside>
 
 ## Read-only Mode
 

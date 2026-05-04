@@ -187,6 +187,48 @@ await col.schema();     // → { fields: [{ name, type, example }], sampleCount 
 await col.distinct("status"); // → { field: "status", values: ["open", "closed"], count: 2 }
 ```
 
+## Search
+
+AgentDB ships three search methods on every collection. See [Search](/agentdb/api/vector-search/) for the full reference, embedding-provider setup, and tuning notes.
+
+```typescript
+// Lexical (BM25). No embedding provider required. Tokenizer is Unicode-aware.
+await col.bm25Search("auth error", { limit: 10, filter: { status: "open" } });
+
+// Semantic (HNSW vector search). Requires an embedding provider on the AgentDB.
+await col.semanticSearch("login flow regression", { limit: 10 });
+
+// Hybrid — fuses BM25 + semantic via Reciprocal Rank Fusion (RRF, k=60 default).
+// Degrades to whichever arm is configured; throws only if neither is.
+await col.hybridSearch("login flow regression", {
+  limit: 10,
+  filter: { status: "open" },
+  candidateLimit: 50,  // per-arm before fusion (default max(limit*4, 50))
+});
+```
+
+<Aside type="caution">
+  `Collection.searchByVector(vec, opts?)` is **async** as of v1.4 — it now returns `Promise<{ records, scores }>`. Pre-1.4 callers that omitted `await` need to add it.
+</Aside>
+
+## Reembed All
+
+Force-reembed every record in the collection — used to migrate from v1.3 (where stored embeddings included `_id` in the text) to v1.4. Resets the HNSW index and re-runs the current embedding logic against all records. **Destructive**: rewrites every stored vector.
+
+```typescript
+const result = await col.reembedAll();
+// → { embedded: 1200, failed: 0, errors: [] }
+//
+// On partial failure:
+// {
+//   embedded: 1180,
+//   failed: 20,
+//   errors: [{ batchIndex: 4, recordIds: ["..."], reason: "..." }],
+// }
+```
+
+Disk-mode collections compact mid-flight (every `MERGE_JSONL_THRESHOLD` batches) so JSONL file count stays bounded throughout long runs. The MCP equivalent is `db_reembed_all` (admin-only, DESTRUCTIVE).
+
 ## Blob Storage
 
 Attach files (text or binary) to records. Stored via StorageBackend — works on both filesystem and S3 transparently.

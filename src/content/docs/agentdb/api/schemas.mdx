@@ -29,15 +29,23 @@ const tasks = await db.collection(defineSchema({
   description: "Project tasks tracked by the team",
   instructions: "Set priority based on urgency. Close done tasks after review.",
   fields: {
-    title: { type: "string", required: true, maxLength: 200, description: "Short task summary" },
-    status: { type: "enum", values: ["pending", "done"], default: "pending", description: "Current state" },
+    title:    { type: "string", required: true, maxLength: 200, description: "Short task summary", searchable: true },
+    body:     { type: "string", description: "Full description", searchable: true },
+    status:   { type: "enum", values: ["pending", "done"], default: "pending", description: "Current state" },
     priority: { type: "enum", values: ["H", "M", "L"], default: "M", description: "H=urgent, M=normal, L=backlog" },
   },
   indexes: ["status", "priority"],
+  bm25: { k1: 1.2, b: 0.75 },  // optional — these are the defaults
 }));
 ```
 
 `description`, `instructions`, and per-field `description` are **agent-facing context** — visible to any agent that calls `db_get_schema`.
+
+#### Searchable fields
+
+`searchable: true` on a string (or `string[]`) field opts that field's text into the BM25 lexical index. `defineSchema` and `validatePersistedSchema` both **throw** when `searchable: true` is set on a non-string type (`number`, `boolean`, `enum`, `autoIncrement`, `object`) — misconfigured schemas are rejected at definition time and via `db_set_schema`.
+
+Per-collection BM25 tuning lives on the schema as `bm25: { k1?: number; b?: number }` (defaults `1.2` / `0.75`). `mergeSchemas` is code-wins for `searchable` and `bm25`; `mergePersistedSchemas` is overlay-wins. See [Search](/agentdb/api/vector-search/) for the full BM25/hybrid reference.
 
 ### 2. Persist — schema auto-saved to disk
 

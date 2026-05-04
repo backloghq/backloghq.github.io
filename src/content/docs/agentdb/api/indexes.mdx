@@ -83,3 +83,17 @@ col.suggestIndexes(100);
 - **Incrementally maintained** on every insert, update, upsert, delete
 - **Rebuilt on tail/watch** only for affected records (not full scan)
 - **Automatically used** by `find()`, `count()`, `update()`, and `remove()`
+
+## Text Index (BM25)
+
+Fields marked `searchable: true` in [defineSchema](/agentdb/api/schemas/) are added to a per-collection BM25 inverted index. The index powers `bm25Search`, the lexical arm of `hybridSearch`, and the `db_bm25_search` MCP tool. See [Search](/agentdb/api/vector-search/) for the search reference.
+
+- **Unicode tokenizer** — `[\p{L}\p{M}\p{N}]+` matches accented Latin, CJK, Hangul, etc. Emoji excluded. No NFC/NFD normalisation.
+- **BM25 stats persisted** in disk-mode (TextIndex v2 JSON); v1 indexes upgrade lazily on first save.
+- **Memory accounting** — `TextIndex.estimatedBytes()` registers with the memory monitor; surfaced as `textIndexBytes` in `Collection.stats()` and `db_stats`.
+- **Same-session writes** are searchable immediately via WAL fallback in disk mode.
+- **Size cap** — disk-mode text index is capped at 256 MB on load (~25–30K docs); past this, BM25 throws `IndexFileTooLargeError`.
+
+## HNSW Vector Index
+
+`defineSchema` collections with an embedding provider build an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search. Disk-mode HNSW is rebuilt from stored vectors on reopen, with auto-detected dimensionality (relevant for providers like Ollama that report `dimensions=0` until first call). See [Search](/agentdb/api/vector-search/).

@@ -33,7 +33,7 @@ export default defineConfig({
 								{ label: 'Schemas', slug: 'agentdb/api/schemas' },
 								{ label: 'Filters', slug: 'agentdb/api/filters' },
 								{ label: 'Indexes', slug: 'agentdb/api/indexes' },
-								{ label: 'Vector Search', slug: 'agentdb/api/vector-search' },
+								{ label: 'Search', slug: 'agentdb/api/vector-search' },
 							],
 						},
 						{

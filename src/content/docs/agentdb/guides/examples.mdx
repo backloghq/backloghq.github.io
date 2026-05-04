@@ -11,7 +11,7 @@ All demos are in the [examples/](https://github.com/backloghq/agentdb/tree/main/
 
 <CardGrid>
   <LinkCard title="Multi-Agent Task Board" description="Multiple AI agents collaborate on a shared task board. Event-driven via NOTIFY/LISTEN, optimistic locking, per-agent auth." href="https://github.com/backloghq/agentdb/tree/main/examples/multi-agent" />
-  <LinkCard title="RAG Knowledge Base" description="Ingest documents, embed with Ollama, answer questions via semantic search with source attribution." href="https://github.com/backloghq/agentdb/tree/main/examples/rag-knowledge-base" />
+  <LinkCard title="RAG Knowledge Base" description="Ingest documents, embed with Ollama, answer questions via hybrid (BM25 + semantic) search with source attribution." href="https://github.com/backloghq/agentdb/tree/main/examples/rag-knowledge-base" />
   <LinkCard title="Research Pipeline" description="3-stage AI pipeline: Researcher → Analyst → Writer. Each stage triggers the next via notifications." href="https://github.com/backloghq/agentdb/tree/main/examples/research-pipeline" />
   <LinkCard title="Multi-Model Code Review" description="Gemini generates code, Ollama reviews for security, Gemini writes tests. Two providers coordinated through AgentDB." href="https://github.com/backloghq/agentdb/tree/main/examples/code-review" />
   <LinkCard title="Live Dashboard" description="Real-time CLI dashboard that watches collections and re-renders on every change." href="https://github.com/backloghq/agentdb/tree/main/examples/live-dashboard" />
@@ -34,7 +34,7 @@ cd examples/multi-agent && ./run.sh
 |---------|------|
 | Event-driven coordination | Multi-agent, Research pipeline |
 | Optimistic locking | Multi-agent (task claiming) |
-| Semantic search / RAG | RAG Knowledge Base |
+| Hybrid search (BM25 + semantic) / RAG | RAG Knowledge Base |
 | Multi-provider orchestration | Code Review (Gemini + Ollama) |
 | Real-time monitoring | Live Dashboard |
 | Pipeline via notifications | Research Pipeline, Code Review |

@@ -170,14 +170,29 @@ const events = await db.collection(defineSchema({
 - **Disk-backed storage** — JSONL + Parquet for collections beyond memory, with auto-switching
 - **Undo built-in** — every mutation is reversible
 - **Agent identity** — tracks who changed what and why
+- **Hybrid search** — BM25 (lexical) + semantic (vector) fused via Reciprocal Rank Fusion
 - **Vector search** — HNSW approximate nearest neighbor with 6 embedding providers
+- **Unicode tokenizer** — accented Latin (`café`) and CJK (`東京`) indexable out of the box
 - **Real-time notifications** — event-driven coordination via `db_subscribe`
+
+## v1.3 → v1.4 Migration
+
+v1.3 included `_id` in the text passed to embedding providers, which made stored embeddings drift from query embeddings and degraded recall. v1.4 fixes the extraction (all `_`-prefixed meta fields excluded). After upgrading, run `reembedAll()` once per embedded collection to rebuild stored vectors with the correct text:
+
+```typescript
+const docs = await db.collection("docs");
+const result = await docs.reembedAll();
+// → { embedded: 1200, failed: 0, errors: [] }
+```
+
+Or via MCP: `db_reembed_all { collection: "docs" }` (admin-only, DESTRUCTIVE). See [Search](/agentdb/api/vector-search/) for details.
 
 ## Next Steps
 
 - [Collection API](/agentdb/api/collection/) — CRUD, indexes, update operators
 - [Schemas](/agentdb/api/schemas/) — persisted schemas, the six-step lifecycle, bootstrap options
 - [Filters](/agentdb/api/filters/) — JSON and compact filter syntax
+- [Search](/agentdb/api/vector-search/) — hybrid (BM25 + semantic), BM25, and HNSW vector search
 - [MCP Tools](/agentdb/mcp/tools/) — full tools reference including schema lifecycle
-- [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker
+- [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker, performance knobs
 - [Examples](/agentdb/guides/examples/) — runnable demos
