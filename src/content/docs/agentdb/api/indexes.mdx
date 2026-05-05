@@ -86,13 +86,16 @@ col.suggestIndexes(100);
 
 ## Text Index (BM25)
 
-Fields marked `searchable: true` in [defineSchema](/agentdb/api/schemas/) are added to a per-collection BM25 inverted index. The index powers `bm25Search`, the lexical arm of `hybridSearch`, and the `db_bm25_search` MCP tool. See [Search](/agentdb/api/vector-search/) for the search reference.
+Fields marked `searchable: true` in [defineSchema](/agentdb/api/schemas/) are added to a per-collection BM25 index. The index powers `bm25Search`, the lexical arm of `hybridSearch`, and the `db_bm25_search` MCP tool. See [Search](/agentdb/api/vector-search/) for the search reference.
 
-- **Unicode tokenizer** — `[\p{L}\p{M}\p{N}]+` matches accented Latin, CJK, Hangul, etc. Emoji excluded. No NFC/NFD normalisation.
-- **BM25 stats persisted** in disk-mode (TextIndex v2 JSON); v1 indexes upgrade lazily on first save.
-- **Memory accounting** — `TextIndex.estimatedBytes()` registers with the memory monitor; surfaced as `textIndexBytes` in `Collection.stats()` and `db_stats`.
-- **Same-session writes** are searchable immediately via WAL fallback in disk mode.
-- **Size cap** — disk-mode text index is capped at 256 MB on load (~25–30K docs); past this, BM25 throws `IndexFileTooLargeError`.
+As of v2.0 the BM25 backend is [`@backloghq/termlog`](https://github.com/backloghq/termlog) — a segment-based LSM full-text index persisted at `<dir>/text/`.
+
+- **Unicode tokenizer** — `[\p{L}\p{M}\p{N}]+` with NFC normalisation; matches accented Latin, CJK, Hangul, etc. Emoji excluded.
+- **k1 / b tunable** — set via `defineSchema({ bm25: { k1, b } })` or `CollectionOptions.bm25` (defaults `k1=1.2`, `b=0.75`).
+- **No size cap** — segments are size-tiered and compacted; collections grow without an artificial document ceiling.
+- **S3-aware** — when AgentDB runs on S3 (via `@backloghq/opslog-s3`), termlog transparently uses [`@backloghq/termlog-s3`](https://github.com/backloghq/termlog-s3) (optional peer dep) and stores segments under the same bucket prefix.
+- **Same-session writes** are searchable immediately — `bm25Search`, `$text`, and `search()` flush the write buffer before querying.
+- **v1.4 → v2.0 migration** — opening a collection with a legacy `indexes/text-index.json` blob throws `LegacyTextIndexError`. Recover via `await db.rebuildTextIndex(name)` (or the `db_rebuild_text_index` MCP tool); see the [migration guide](/agentdb/getting-started/#v14-→-v20-migration).
 
 ## HNSW Vector Index
 

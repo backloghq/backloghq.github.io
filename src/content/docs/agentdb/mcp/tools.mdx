@@ -47,6 +47,7 @@ description: Tools available via MCP — CRUD, discovery, schema lifecycle, sear
 | `db_create` | Create a new collection |
 | `db_drop` | Soft-delete a collection |
 | `db_purge` | Permanently delete a dropped collection |
+| `db_rebuild_text_index` | Rebuild the BM25 index for a collection (admin-only, idempotent) — required to migrate v1.4 text indexes to the v2.0 termlog backend |
 
 ### Archive
 

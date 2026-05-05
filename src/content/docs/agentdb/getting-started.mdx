@@ -175,6 +175,30 @@ const events = await db.collection(defineSchema({
 - **Unicode tokenizer** — accented Latin (`café`) and CJK (`東京`) indexable out of the box
 - **Real-time notifications** — event-driven coordination via `db_subscribe`
 
+## v1.4 → v2.0 Migration
+
+v2.0 replaces the in-house BM25 implementation (`TextIndex`) with [`@backloghq/termlog`](https://github.com/backloghq/termlog) — a segment-based LSM full-text index. The legacy `TextIndex`, `TextIndexOpts`, and `IndexFileTooLargeError` exports are removed; the 256 MB on-disk text index cap is gone.
+
+Detection is automatic and fail-loud — opening a collection that has a legacy `indexes/text-index.json` blob throws `LegacyTextIndexError`. Recover with a single call:
+
+```typescript
+import { AgentDB, LegacyTextIndexError } from "@backloghq/agentdb";
+
+const db = new AgentDB("./data");
+await db.init();
+
+try {
+  await db.collection("docs"); // throws LegacyTextIndexError if v1.4 data is present
+} catch (err) {
+  if (err instanceof LegacyTextIndexError) {
+    await db.rebuildTextIndex("docs"); // builds termlog index, deletes the legacy blob
+    await db.collection("docs");        // now succeeds
+  }
+}
+```
+
+Or via MCP: `db_rebuild_text_index { collection: "docs" }` (admin-only, idempotent). The rebuild reads every record once, indexes via termlog, and removes `indexes/text-index.json`.
+
 ## v1.3 → v1.4 Migration
 
 v1.3 included `_id` in the text passed to embedding providers, which made stored embeddings drift from query embeddings and degraded recall. v1.4 fixes the extraction (all `_`-prefixed meta fields excluded). After upgrading, run `reembedAll()` once per embedded collection to rebuild stored vectors with the correct text:

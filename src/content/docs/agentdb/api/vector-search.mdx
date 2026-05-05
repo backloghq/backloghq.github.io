@@ -170,7 +170,7 @@ AgentDB uses an HNSW (Hierarchical Navigable Small World) index for approximate 
 - **Cosine similarity** scoring
 
 <Aside type="note">
-  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally. The on-disk text index is capped at 256 MB (~25–30K docs) — past this, BM25 throws `IndexFileTooLargeError`.
+  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally. As of v2.0 the BM25 text index is backed by `@backloghq/termlog` (segment-based LSM) — there is no on-disk size cap.
 </Aside>
 
 ## v1.3 → v1.4 Migration
