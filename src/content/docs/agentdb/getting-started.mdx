@@ -176,6 +176,35 @@ const events = await db.collection(defineSchema({
 - **Unicode tokenizer** — accented Latin (`café`) and CJK (`東京`) indexable out of the box
 - **Real-time notifications** — event-driven coordination via `db_subscribe`
 
+## v2.1 → v2.2 Migration
+
+v2.2 is **additive — no breaking changes**. Existing v2.1 code continues to work without changes.
+
+- **Bloom filter query planner integration** — `find()`, `count()`, `update()`, and `delete()` now auto-consult any bloom filters on the queried field. Equality predicates (`{ field: value }`, `{ field: { $eq: value } }`, all-absent `{ field: { $in: [...] } }`) short-circuit to zero results when `mightHave` returns false, without touching Parquet or the in-memory store. False positives fall through to scan — correct by design. Pre-existing bloom-maintenance bugs (post-creation inserts/updates/deletes were not propagating to bloom) are fixed as part of this work.
+- **`HnswOptions.persistEvery`** — periodic flush of the HNSW graph sidecar for bounded crash exposure on long-running ingest. Default `undefined` (close-only, v2.1.1 behavior).
+- **`HnswOptions.persistTimeoutMs`** — bound non-close-time waits on slow backends. Pair with `persistEvery`.
+- **Composite + bloom durable persistence** — `<dir>/indexes/composite-{fields}.json` and `<dir>/indexes/bloom-{field}.json` mirror the existing B-tree/array persistence. Lazy load on first use; v2.1.1 disk-iter populate retained as fallback. Field-set validation guards against filename collisions.
+- **HNSW `seed` propagation** — `seed?` now correctly forwards through `CollectionOptions.hnsw` and `AgentDBOptions.hnsw` (latent v2.1.1 omission).
+- **Diagnostic warnings** on corrupt JSON / non-ENOENT errors when loading persisted composite or bloom indexes (was silent fall-back).
+
+```typescript
+// v2.1 (still works in v2.2)
+const db = await AgentDB.open("./data");
+
+// v2.2 — periodic HNSW flush for long-running ingest
+const db = await AgentDB.open("./data", {
+  hnsw: { persistEvery: 1000, persistTimeoutMs: 5000, seed: 42 },
+});
+
+// v2.2 — bloom filter now consulted by the planner
+const users = await db.collection("users");
+await users.createBloomFilter("email", 50_000);
+await users.find({ filter: { email: "missing@example.com" } });
+// → zero records, zero scan (mightHave returned false)
+```
+
+**Known issue (carried into v2.2):** the HNSW `graph.bin` sidecar persists to local FS regardless of backend. In S3 deployments with ephemeral container FS, the sidecar is lost on restart and HNSW rebuilds from quantized embeddings (no data loss, just slower cold start). S3-native sidecar is tracked for v2.3 — see [Deployment](/agentdb/guides/deployment/#known-issue--hnsw-sidecar-on-s3).
+
 ## v2.0 → v2.1 Migration
 
 v2.1 is **additive — no breaking changes**. Existing v2.0 code continues to work. The release adds the `AgentDB.open()` factory, lazy auto-init, the configuration pipeline (env vars + `agentdb.config.json`), production-tuning knobs, observability metrics, progress callbacks, and `AbortSignal` support.

@@ -45,7 +45,7 @@ col.find({ filter: { score: { $gte: 10, $lte: 90 } } }); // uses index
 For compound queries on multiple fields:
 
 ```typescript
-col.createCompositeIndex(["status", "priority"]);
+await col.createCompositeIndex(["status", "priority"]);
 
 // All-equality lookups use the composite index
 col.find({ filter: { status: "active", priority: "H" } });
@@ -55,16 +55,28 @@ col.listCompositeIndexes();  // → [["status", "priority"]]
 col.dropCompositeIndex(["status", "priority"]);
 ```
 
+<Aside type="note">
+  Disk-mode persistence (v2.2) — composite indexes now persist to `<dir>/indexes/composite-{fields__joined}.json` on close and lazy-load on reopen, so the v2.1.1 O(N) disk-scan rebuild only runs when no JSON file exists yet (first open after upgrade) or version mismatch is detected. Field-set validation guards against the rare filename-collision case where two field arrays join to the same on-disk name. Corrupt JSON or non-ENOENT load failures emit a diagnostic warning before falling back to disk-scan rebuild.
+</Aside>
+
 ## Bloom Filters
 
 Probabilistic existence checks — fast "definitely not" answers:
 
 ```typescript
-col.createBloomFilter("email", 50000); // expected items
+await col.createBloomFilter("email", 50000); // expected items
 
 col.mightHave("email", "alice@example.com"); // true or false
 // true = maybe exists, false = definitely doesn't exist
 ```
+
+<Aside type="tip">
+  Auto-consulted by the query planner (v2.2) — `find()`, `count()`, `update()`, and `delete()` short-circuit to zero results when a bloom filter on the queried field returns `mightHave=false` for an equality predicate (`{ field: value }`, `{ field: { $eq: value } }`, all-absent `{ field: { $in: [...] } }`). B-tree, composite, and array indexes win when both exist. False positives fall through to a normal scan — correct by design.
+</Aside>
+
+<Aside type="note">
+  Disk-mode persistence (v2.2) — bloom filters persist to `<dir>/indexes/bloom-{field}.json` on close and lazy-load on reopen; the v2.1.1 disk-iter populate path remains as fallback for first open after upgrade or version mismatch. Post-creation inserts/updates/deletes now correctly update the bloom filter (was silently stale pre-v2.2).
+</Aside>
 
 ## Index Suggestions
 

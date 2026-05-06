@@ -170,17 +170,19 @@ AgentDB uses an HNSW (Hierarchical Navigable Small World) index for approximate 
 - **Int8 quantization** for storage efficiency
 - **Cosine similarity** scoring
 
-### Tunable parameters (v2.1+)
+### Tunable parameters
 
 `HnswOptions` is exposed via `CollectionOptions.hnsw` and `AgentDBOptions.hnsw`:
 
-| Option | Default | Notes |
-|--------|---------|-------|
-| `M` | `16` | Graph connectivity; higher = better recall, more memory |
-| `efConstruction` | `200` | Build-time candidate width; higher = better graph quality |
-| `efSearch` | `50` | Query-time candidate width; higher = better recall, slower |
-| `maxLevel` | `max(16, floor(log(1e6)/log(M)))` | Cap on the highest layer a node can be assigned. Replaces the v2.0 hard-coded `16`. |
-| `seed` | `undefined` (uses `Math.random`) | Optional `number`. When set, `randomLevel()` uses a mulberry32 PRNG seeded with this value, producing identical layer assignments for the same insert order across processes. Reproducible topology requires controlling insert order too. |
+| Option | Default | Since | Notes |
+|--------|---------|-------|-------|
+| `M` | `16` | v2.1 | Graph connectivity; higher = better recall, more memory |
+| `efConstruction` | `200` | v2.1 | Build-time candidate width; higher = better graph quality |
+| `efSearch` | `50` | v2.1 | Query-time candidate width; higher = better recall, slower |
+| `maxLevel` | `max(16, floor(log(1e6)/log(M)))` | v2.1 | Cap on the highest layer a node can be assigned. Replaces the v2.0 hard-coded `16`. |
+| `seed` | `undefined` (uses `Math.random`) | v2.1.1 | Optional `number`. When set, `randomLevel()` uses a mulberry32 PRNG seeded with this value, producing identical layer assignments for the same insert order across processes. Forwarded through `CollectionOptions.hnsw.seed` and `AgentDBOptions.hnsw.seed` correctly as of v2.2 (the v2.1.1 forward path was incomplete). Reproducible topology requires controlling insert order too. |
+| `persistEvery` | `undefined` (close-only) | v2.2 | Number of `add()` calls between full-graph flushes to `hnsw/graph.bin`. Bounds crash exposure on long-running ingest. Each flush rewrites the FULL graph, so set `persistEvery` to `N/10` or higher for large-N ingest to keep write amplification bounded. Worst-case crash window is `2 × persistEvery` because a flush in flight when the next threshold fires causes the next flush to be skipped. |
+| `persistTimeoutMs` | `undefined` (wait indefinitely) | v2.2 | Bound on `awaitHnswFlush()` waits for slow backends. Pair with `persistEvery`. `close()` always waits for the in-flight periodic flush regardless of `persistTimeoutMs`, then writes an authoritative close-time snapshot. |
 
 Set them per collection:
 
@@ -189,14 +191,24 @@ const docs = await db.collection(defineSchema({
   name: "docs",
   fields: { title: { type: "string", searchable: true } },
 }), {
-  hnsw: { M: 32, efSearch: 200, seed: 42 },
+  hnsw: {
+    M: 32,
+    efSearch: 200,
+    seed: 42,
+    persistEvery: 1000,        // flush graph every 1000 vectors added
+    persistTimeoutMs: 5000,    // bound non-close waits at 5s
+  },
 });
 ```
 
-Or db-wide via `AgentDBOptions.hnsw` (per-collection wins). All four can also be set via env vars (`AGENTDB_HNSW_M`, `AGENTDB_HNSW_EF_CONSTRUCTION`, `AGENTDB_HNSW_EF_SEARCH`, `AGENTDB_HNSW_MAX_LEVEL`) — see [Configuration](/agentdb/guides/configuration/).
+Or db-wide via `AgentDBOptions.hnsw` (per-collection wins). `M`, `efConstruction`, `efSearch`, and `maxLevel` can also be set via env vars (`AGENTDB_HNSW_M`, `AGENTDB_HNSW_EF_CONSTRUCTION`, `AGENTDB_HNSW_EF_SEARCH`, `AGENTDB_HNSW_MAX_LEVEL`) — see [Configuration](/agentdb/guides/configuration/). `persistEvery`, `persistTimeoutMs`, and `seed` are not exposed as env vars in v2.2.
 
 <Aside type="note">
-  The HNSW graph is persisted to disk (v2.1.1) but the runtime index is still in-memory — the sidecar file eliminates the O(N × M × efConstruction) rebuild on reopen, but query latency is still served from RAM. As of v2.0 the BM25 text index is backed by `@backloghq/termlog` (segment-based LSM) — there is no on-disk size cap.
+  The HNSW graph is persisted to disk (v2.1.1) but the runtime index is still in-memory — the sidecar file eliminates the O(N × M × efConstruction) rebuild on reopen, but query latency is still served from RAM. v2.2 adds optional periodic flush via `persistEvery` for bounded crash exposure on long-running ingest. As of v2.0 the BM25 text index is backed by `@backloghq/termlog` (segment-based LSM) — there is no on-disk size cap.
+</Aside>
+
+<Aside type="caution">
+  The HNSW `graph.bin` sidecar is written to the local filesystem regardless of the configured storage backend. In S3 deployments with ephemeral container FS, the sidecar is lost on restart and HNSW rebuilds from quantized embeddings already in Parquet/JSONL (O(N) vector reads, no distance computations — no data loss, just slower cold start). S3-native sidecar persistence is tracked for v2.3.
 </Aside>
 
 ## v1.3 → v1.4 Migration

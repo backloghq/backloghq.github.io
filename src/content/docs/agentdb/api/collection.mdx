@@ -149,6 +149,10 @@ await col.count({ status: "open" });         // with filter
   When a B-tree index exists on the filtered field and no TTL records exist, `count()` returns the index size directly — O(1) instead of scanning all records.
 </Aside>
 
+<Aside type="note">
+  As of v2.2, `find()`, `count()`, `update()`, and `delete()` consult any bloom filter on the queried field for top-level equality predicates (`{ field: value }`, `{ field: { $eq: value } }`, all-absent `{ field: { $in: [...] } }`). When `mightHave` returns false the call short-circuits to zero results without touching Parquet or the in-memory store. B-tree, composite, and array indexes still take precedence — bloom only fires when no structural index matched. False positives fall through to a normal scan.
+</Aside>
+
 ## Indexes
 
 ```typescript

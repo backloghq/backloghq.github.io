@@ -216,6 +216,17 @@ const events = await db.collection(defineSchema({
   When you pass a `defineSchema` result to `db.collection(schema, opts)`, `schema.collectionOptions` **completely replaces** the `opts` argument. Set `embeddingBatchSize` / `diskConcurrency` inside `defineSchema(...)` for schema-defined collections, or as db-wide defaults on `AgentDBOptions`.
 </Aside>
 
+## Known issue — HNSW sidecar on S3
+
+In S3-backed deployments, the HNSW `graph.bin` sidecar (introduced in v2.1.1, optionally periodic in v2.2 via `HnswOptions.persistEvery`) is always written to the local filesystem — `persistHnsw()` does not route through the configured storage backend. For containers with ephemeral local FS (Lambda, ECS Fargate, scale-to-zero Kubernetes), this means the sidecar is lost on restart and the HNSW index is rebuilt from quantized embeddings stored in Parquet/JSONL on next open.
+
+- **No data loss.** Vectors live in Parquet/JSONL, which IS S3-backed; only the graph topology rebuilds.
+- **Cold-start cost.** O(N) vector reads from S3 plus an in-memory rebuild — minutes for collections in the hundreds of thousands of vectors, longer beyond that.
+- **Within a single process lifetime.** The sidecar IS written and re-read correctly across same-process close/reopen cycles that share the working directory.
+- **Workaround.** Mount a persistent volume to the working directory so `<collectionDir>/hnsw/graph.bin` survives restarts.
+
+S3-native sidecar persistence is tracked for v2.3.
+
 ## Read-only Mode
 
 Open alongside a writer for dashboards and monitoring:
