@@ -58,6 +58,8 @@ await startHttp("./data", {
 });
 ```
 
+For HMAC-signed JWTs (HS256) configured via env or config file, the secret must be **at least 32 characters (256 bits)** per RFC 7518 (v2.1+). A shorter `AGENTDB_HTTP_JWT_SECRET` causes the server to refuse to start with a `ConfigValidationError`. Generate a secure key with `openssl rand -hex 32`.
+
 </TabItem>
 <TabItem label="Custom">
 
@@ -75,6 +77,24 @@ await startHttp("./data", {
 
 </TabItem>
 </Tabs>
+
+## Auth precedence (v2.1+)
+
+If more than one mechanism is configured in the same process, the CLI enforces a fixed priority and emits a startup warning naming the active mechanisms, the winner, and the priority order:
+
+```
+jwt > multi-token > bearer
+```
+
+| Configured | Enforced |
+|---|---|
+| `AGENTDB_HTTP_JWT_SECRET` only | JWT |
+| `AGENTDB_HTTP_MULTI_TOKEN` only | multi-token |
+| `AGENTDB_HTTP_AUTH` only | bearer |
+| JWT + multi-token (or bearer) | JWT wins; lower-priority mechanisms ignored after warning |
+| multi-token + bearer | multi-token wins; bearer ignored after warning |
+
+The warning prints to stderr at startup so operators can spot a misconfigured deployment immediately.
 
 ## Permissions
 
@@ -96,6 +116,8 @@ npx @backloghq/agentdb --http --auth-token secret --rate-limit 100 --cors https:
 
 - **Timing-safe** token comparison (prevents timing attacks)
 - **HSTS** header on HTTP transport
-- **Session limits** — max 100 concurrent sessions, 30-minute idle timeout
+- **Session limits** — default 100 concurrent sessions and 30-minute idle timeout; both tunable via `HttpOptions.maxSessions` / `sessionIdleMs` (or `AGENTDB_HTTP_MAX_SESSIONS` / `AGENTDB_HTTP_SESSION_IDLE_MS`) since v2.1
 - **Error sanitization** — filesystem paths stripped from error messages
-- **Audit logging** — every request logged with agent identity and timestamp
+- **Audit logging** — every request logged with agent identity and timestamp; ring-buffer size and query page limits tunable via `auditBufferSize` / `auditMaxLimit` / `auditDefaultLimit` (v2.1)
+- **JWT secret minimum 32 bytes (HS256, RFC 7518)** — enforced at config load (v2.1)
+- **World-readable config-file warning** — `loadAgentDBConfig` warns when the config file has the world-read bit set (POSIX only)

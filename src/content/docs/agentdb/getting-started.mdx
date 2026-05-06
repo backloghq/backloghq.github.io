@@ -19,8 +19,8 @@ npm install @backloghq/agentdb
 ```typescript
 import { AgentDB } from "@backloghq/agentdb";
 
-const db = new AgentDB("./data");
-await db.init();
+// Recommended: one-call factory that constructs and initializes
+const db = await AgentDB.open("./data");
 
 const tasks = await db.collection("tasks");
 await tasks.insert({ title: "Hello", status: "active" });
@@ -30,6 +30,8 @@ console.log(results.records);
 
 await db.close();
 ```
+
+The `new AgentDB(...); await db.init()` two-step still works for backward compatibility, and `db.collection(...)` lazily auto-inits if you skip `init()`. `AgentDB.open()` is the modern recommended path.
 
 </TabItem>
 <TabItem label="MCP Server (stdio)">
@@ -99,8 +101,7 @@ Define typed, validated collections with `defineSchema()`:
 ```typescript
 import { AgentDB, defineSchema } from "@backloghq/agentdb";
 
-const db = new AgentDB("./data");
-await db.init();
+const db = await AgentDB.open("./data");
 
 const tasks = await db.collection(defineSchema({
   name: "tasks",
@@ -175,6 +176,27 @@ const events = await db.collection(defineSchema({
 - **Unicode tokenizer** — accented Latin (`café`) and CJK (`東京`) indexable out of the box
 - **Real-time notifications** — event-driven coordination via `db_subscribe`
 
+## v2.0 → v2.1 Migration
+
+v2.1 is **additive — no breaking changes**. Existing v2.0 code continues to work. The release adds the `AgentDB.open()` factory, lazy auto-init, the configuration pipeline (env vars + `agentdb.config.json`), production-tuning knobs, observability metrics, progress callbacks, and `AbortSignal` support.
+
+```typescript
+// v2.0 (still works in v2.1)
+const db = new AgentDB("./data");
+await db.init();
+
+// v2.1 (recommended)
+const db = await AgentDB.open("./data");
+
+// Read live counters without instrumentation
+const m = (await db.collection("docs")).metrics();
+console.log(m.bm25SegmentCount, m.hnswNodeCount, m.recordCacheHits);
+```
+
+v2.1.1 adds HNSW graph persistence (`hnsw/graph.bin` sidecar — eliminates O(N) rebuild on reopen for embedded disk-mode collections), deterministic HNSW via `HnswOptions.seed`, and a batch of memory-leak fixes around close/eviction/subscriptions. No code changes required to pick them up.
+
+See [Configuration](/agentdb/guides/configuration/) for the env vars and config-file reference.
+
 ## v1.4 → v2.0 Migration
 
 v2.0 replaces the in-house BM25 implementation (`TextIndex`) with [`@backloghq/termlog`](https://github.com/backloghq/termlog) — a segment-based LSM full-text index. The legacy `TextIndex`, `TextIndexOpts`, and `IndexFileTooLargeError` exports are removed; the 256 MB on-disk text index cap is gone.
@@ -184,8 +206,7 @@ Detection is automatic and fail-loud — opening a collection that has a legacy 
 ```typescript
 import { AgentDB, LegacyTextIndexError } from "@backloghq/agentdb";
 
-const db = new AgentDB("./data");
-await db.init();
+const db = await AgentDB.open("./data");
 
 try {
   await db.collection("docs"); // throws LegacyTextIndexError if v1.4 data is present
@@ -218,5 +239,6 @@ Or via MCP: `db_reembed_all { collection: "docs" }` (admin-only, DESTRUCTIVE). S
 - [Filters](/agentdb/api/filters/) — JSON and compact filter syntax
 - [Search](/agentdb/api/vector-search/) — hybrid (BM25 + semantic), BM25, and HNSW vector search
 - [MCP Tools](/agentdb/mcp/tools/) — full tools reference including schema lifecycle
+- [Configuration](/agentdb/guides/configuration/) — `AGENTDB_*` env vars, `agentdb.config.json`, three-layer precedence
 - [Deployment](/agentdb/guides/deployment/) — stdio, HTTP, S3, Docker, performance knobs
 - [Examples](/agentdb/guides/examples/) — runnable demos

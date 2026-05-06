@@ -76,6 +76,96 @@ CMD ["--path", "/data", "--http", "--host", "0.0.0.0"]
 docker run -p 3000:3000 -v ./data:/data agentdb
 ```
 
+### Environment-driven configuration (v2.1+)
+
+For container runtimes (Docker, Kubernetes), prefer env vars over CLI flags so the same image runs across environments. Every flag has an `AGENTDB_*` equivalent. See [Configuration](/agentdb/guides/configuration/) for the full reference.
+
+```dockerfile
+ENV AGENTDB_PATH=/data
+ENV AGENTDB_HTTP_PORT=3000
+ENV AGENTDB_HTTP_HOST=0.0.0.0
+ENV AGENTDB_WRITE_MODE=group
+ENV AGENTDB_BACKEND=s3
+# AGENTDB_S3_BUCKET, AGENTDB_HTTP_JWT_SECRET — inject at runtime via secrets manager
+```
+
+```bash
+docker run -p 3000:3000 \
+  -e AGENTDB_HTTP_JWT_SECRET="$(openssl rand -hex 32)" \
+  -e AGENTDB_S3_BUCKET=my-bucket \
+  -e AGENTDB_S3_REGION=us-east-1 \
+  -v ./data:/data \
+  agentdb
+```
+
+> **Security note:** env vars on Linux are readable from `/proc/<pid>/environ` by anyone with access to that file (root or the process owner). For long-lived servers prefer a secrets manager, a read-protected config file (`chmod 600 agentdb.config.json`), or systemd `EnvironmentFile=`. JWT secrets must be at least 32 characters (256 bits, HS256 RFC 7518) — shorter values cause the server to refuse to start.
+
+### Config file via volume mount (Kubernetes ConfigMap)
+
+`agentdb.config.json` is loaded automatically when present in the working directory, or via `--config <path>` / `AGENTDB_CONFIG=<path>`. Mount it from a ConfigMap (or a Docker bind mount) for declarative deployments:
+
+```bash
+docker run -p 3000:3000 \
+  -v ./agentdb.config.json:/etc/agentdb/config.json:ro \
+  -v ./data:/data \
+  agentdb --config /etc/agentdb/config.json
+```
+
+```yaml
+# Kubernetes — config from ConfigMap, secrets from Secret
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentdb-config
+data:
+  config.json: |
+    {
+      "db": {
+        "path": "/data",
+        "writeMode": "group",
+        "memoryBudget": 1073741824,
+        "hnsw": { "M": 32, "efSearch": 100 }
+      },
+      "http": {
+        "port": 3000,
+        "host": "0.0.0.0",
+        "maxSessions": 200,
+        "sessionIdleMs": 600000
+      },
+      "collections": {
+        "notes": { "maxFindLimit": 500 }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentdb
+spec:
+  template:
+    spec:
+      containers:
+        - name: agentdb
+          image: agentdb
+          args: ["--config", "/etc/agentdb/config.json"]
+          env:
+            - name: AGENTDB_HTTP_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: agentdb-secrets
+                  key: jwt-secret
+          volumeMounts:
+            - name: config
+              mountPath: /etc/agentdb
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: agentdb-config
+```
+
+The CLI's three-layer precedence (CLI flags > env vars > config file > defaults) lets the ConfigMap define base settings while environment-specific overrides come from the Secret or container args. Configuration is read once at startup — pod restart is required for changes to take effect.
+
 ## Performance Knobs
 
 Four knobs tune embedding throughput, disk concurrency, and Parquet layout. All four sit on `AgentDBOptions` (db-wide defaults) **and** on `CollectionOptions` (per-collection overrides) — per-collection wins, db-wide fills the gap.
@@ -131,8 +221,12 @@ const events = await db.collection(defineSchema({
 Open alongside a writer for dashboards and monitoring:
 
 ```typescript
-const reader = new AgentDB("./data", { readOnly: true });
-await reader.init();
+const reader = await AgentDB.open("./data", { readOnly: true });
 const col = await reader.collection("tasks");
 await col.tail(); // pick up latest writes
 ```
+
+## Next steps
+
+- [Configuration](/agentdb/guides/configuration/) — full `AGENTDB_*` env var reference, `agentdb.config.json` shape, three-layer precedence, library API
+- [Authentication](/agentdb/mcp/auth/) — JWT, multi-token, bearer; auth precedence and JWT secret minimum length

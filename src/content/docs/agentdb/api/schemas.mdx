@@ -20,8 +20,7 @@ Three distinct concepts share the word "schema":
 ```typescript
 import { AgentDB, defineSchema } from "@backloghq/agentdb";
 
-const db = new AgentDB("./data");
-await db.init();
+const db = await AgentDB.open("./data");
 
 const tasks = await db.collection(defineSchema({
   name: "tasks",

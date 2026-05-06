@@ -47,6 +47,7 @@ export default defineConfig({
 						{
 							label: 'Guides',
 							items: [
+								{ label: 'Configuration', slug: 'agentdb/guides/configuration' },
 								{ label: 'Deployment', slug: 'agentdb/guides/deployment' },
 								{ label: 'Examples', slug: 'agentdb/guides/examples' },
 							],

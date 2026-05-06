@@ -165,12 +165,38 @@ const db = new AgentDB("./data", {
 AgentDB uses an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search:
 
 - **Pure TypeScript** — no native dependencies
-- **Disk-mode rebuild on reopen** — index is reconstructed from stored vectors on collection open. Auto-detects dimensionality from the first vector (e.g. Ollama, where `provider.dimensions === 0` until first call).
+- **Graph persisted to disk** (v2.1.1) — disk-mode collections write the HNSW graph topology to `<collectionDir>/hnsw/graph.bin` on `close()` and load it on reopen. Vectors are not stored in the sidecar — they are hydrated O(N) from the quantized `_embedding` fields already in Parquet/JSONL. Falls back to a full rebuild if the file is missing, has a magic/version mismatch, or fails the post-load consistency check.
+- **Auto-detects dimensionality** from the first vector (e.g. Ollama, where `provider.dimensions === 0` until first call)
 - **Int8 quantization** for storage efficiency
 - **Cosine similarity** scoring
 
+### Tunable parameters (v2.1+)
+
+`HnswOptions` is exposed via `CollectionOptions.hnsw` and `AgentDBOptions.hnsw`:
+
+| Option | Default | Notes |
+|--------|---------|-------|
+| `M` | `16` | Graph connectivity; higher = better recall, more memory |
+| `efConstruction` | `200` | Build-time candidate width; higher = better graph quality |
+| `efSearch` | `50` | Query-time candidate width; higher = better recall, slower |
+| `maxLevel` | `max(16, floor(log(1e6)/log(M)))` | Cap on the highest layer a node can be assigned. Replaces the v2.0 hard-coded `16`. |
+| `seed` | `undefined` (uses `Math.random`) | Optional `number`. When set, `randomLevel()` uses a mulberry32 PRNG seeded with this value, producing identical layer assignments for the same insert order across processes. Reproducible topology requires controlling insert order too. |
+
+Set them per collection:
+
+```typescript
+const docs = await db.collection(defineSchema({
+  name: "docs",
+  fields: { title: { type: "string", searchable: true } },
+}), {
+  hnsw: { M: 32, efSearch: 200, seed: 42 },
+});
+```
+
+Or db-wide via `AgentDBOptions.hnsw` (per-collection wins). All four can also be set via env vars (`AGENTDB_HNSW_M`, `AGENTDB_HNSW_EF_CONSTRUCTION`, `AGENTDB_HNSW_EF_SEARCH`, `AGENTDB_HNSW_MAX_LEVEL`) — see [Configuration](/agentdb/guides/configuration/).
+
 <Aside type="note">
-  The HNSW index is in-memory and rebuilt from stored embeddings when a collection opens. For large collections (100K+ vectors), open time increases proportionally. As of v2.0 the BM25 text index is backed by `@backloghq/termlog` (segment-based LSM) — there is no on-disk size cap.
+  The HNSW graph is persisted to disk (v2.1.1) but the runtime index is still in-memory — the sidecar file eliminates the O(N × M × efConstruction) rebuild on reopen, but query latency is still served from RAM. As of v2.0 the BM25 text index is backed by `@backloghq/termlog` (segment-based LSM) — there is no on-disk size cap.
 </Aside>
 
 ## v1.3 → v1.4 Migration

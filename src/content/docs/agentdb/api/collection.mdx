@@ -63,7 +63,15 @@ await col.find({
 
 // Find by ID
 const record = await col.findOne("abc-123");
+
+// Cancel a long disk scan via AbortSignal (v2.1+)
+const ctrl = new AbortController();
+setTimeout(() => ctrl.abort(), 500);
+const partial = await col.find({ filter: { ... }, signal: ctrl.signal });
+// → { records, total, truncated, aborted: true } when the signal fires
 ```
+
+`FindOpts.signal` is honoured in both memory and disk modes. A pre-aborted signal returns immediately with `aborted: true, records: []`.
 
 ## Filtering
 
@@ -225,9 +233,40 @@ const result = await col.reembedAll();
 //   failed: 20,
 //   errors: [{ batchIndex: 4, recordIds: ["..."], reason: "..." }],
 // }
+
+// v2.1+: progress callback + AbortSignal
+const ctrl = new AbortController();
+const result = await col.reembedAll({
+  onProgress: (e) => console.log(`${e.phase}: ${e.completed}/${e.total ?? "?"}`),
+  signal: ctrl.signal,
+});
+// On abort: returns partial ReembedResult with aborted: true
 ```
 
 Disk-mode collections compact mid-flight (every `MERGE_JSONL_THRESHOLD` batches) so JSONL file count stays bounded throughout long runs. The MCP equivalent is `db_reembed_all` (admin-only, DESTRUCTIVE).
+
+`onProgress` is also accepted by `rebuildTextIndex` and `db.import`. `ProgressEvent` carries `{ completed, total, phase }` where `phase` is one of `"wal" | "disk" | "rebuilding" | "importing"`.
+
+## Observability — `col.metrics()`
+
+`col.metrics()` returns a live snapshot of cache hit rates, index sizes, and write mode. All counters are lifetime values since the collection was opened (introduced in v2.1).
+
+```typescript
+const m = col.metrics();
+// {
+//   filterCompilations: 12, filterCacheHits: 480,    // compiled filter cache
+//   recordCacheFetches: 9201, recordCacheHits: 7600, // disk LRU
+//   findTruncations: 0,                              // hit maxFindLimit?
+//   bm25SegmentCount: 3, bm25DocCount: 14_300,       // termlog
+//   bm25NeedsMerge: true,                            // segmentCount > 1
+//   hnswNodeCount: 14_298,                           // HNSW graph size
+//   walRecordCount: 14_300,                          // current-session WAL
+//   parquetRowGroups: 4,                             // last compaction
+//   writeMode: "immediate",                          // open-time mode
+// }
+```
+
+Hit-rate counters are the primary signal for tuning `cacheSize`, `filterCacheSize`, and `mergeJsonlThreshold`. See [Configuration](/agentdb/guides/configuration/) for the knobs.
 
 ## Blob Storage
 

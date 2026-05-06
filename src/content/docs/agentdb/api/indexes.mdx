@@ -99,4 +99,16 @@ As of v2.0 the BM25 backend is [`@backloghq/termlog`](https://github.com/backlog
 
 ## HNSW Vector Index
 
-`defineSchema` collections with an embedding provider build an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search. Disk-mode HNSW is rebuilt from stored vectors on reopen, with auto-detected dimensionality (relevant for providers like Ollama that report `dimensions=0` until first call). See [Search](/agentdb/api/vector-search/).
+`defineSchema` collections with an embedding provider build an HNSW (Hierarchical Navigable Small World) index for approximate nearest neighbor search.
+
+- **Graph persisted to disk (v2.1.1)** — disk-mode collections write the HNSW topology to `<collectionDir>/hnsw/graph.bin` on `close()` and load it on reopen. Vectors hydrate O(N) from quantized `_embedding` fields already in Parquet/JSONL. Falls back to a full rebuild on magic/version mismatch or post-load consistency failure.
+- **Auto-detected dimensionality** for providers like Ollama that report `dimensions=0` until first call.
+- **Tunable via `CollectionOptions.hnsw` and `AgentDBOptions.hnsw` (v2.1+)** — `M` (default `16`), `efConstruction` (default `200`), `efSearch` (default `50`), `maxLevel` (default `max(16, floor(log(1e6)/log(M)))`), `seed` (optional, deterministic layer assignment).
+
+```typescript
+const docs = await db.collection(schema, {
+  hnsw: { M: 32, efConstruction: 400, efSearch: 100, seed: 42 },
+});
+```
+
+See [Search](/agentdb/api/vector-search/) for the search reference and [Configuration](/agentdb/guides/configuration/) for the env-var equivalents.
