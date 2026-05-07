@@ -54,7 +54,7 @@ description: Tools available via MCP — CRUD, discovery, schema lifecycle, sear
 | Tool | Description |
 |------|-------------|
 | `db_archive` | Move records to cold storage |
-| `db_archive_list` | List archive segments |
+| `db_archive_list` | List archive segments — returns `Array<{ name, recordCount }>` (v2.2.1+); pass `details:false` for fast names-only mode |
 | `db_archive_load` | Load archived records |
 
 ### Search & Vectors
@@ -76,7 +76,7 @@ description: Tools available via MCP — CRUD, discovery, schema lifecycle, sear
 | Tool | Description |
 |------|-------------|
 | `db_export` | Export collections as JSON backup |
-| `db_import` | Import from a JSON backup |
+| `db_import` | Import from a JSON backup — returns structured `ImportResult` (`{collections, records, inserted, overwritten, skipped, errors[]}`); emits `notifications/progress` when client supplies `progressToken` (v2.2.1+) |
 
 ### Blob Storage
 

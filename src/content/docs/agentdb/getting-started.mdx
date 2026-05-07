@@ -176,6 +176,36 @@ const events = await db.collection(defineSchema({
 - **Unicode tokenizer** — accented Latin (`café`) and CJK (`東京`) indexable out of the box
 - **Real-time notifications** — event-driven coordination via `db_subscribe`
 
+## v2.2 → v2.2.1 Migration
+
+v2.2.1 is an operator-experience patch with two breaking output-shape changes (tool callers only — library APIs are unchanged in shape and additive in fields):
+
+- **MCP HTTP CORS** allows the spec-required `MCP-Protocol-Version` request header and exposes `Mcp-Session-Id` to browser fetch clients (origin policy unchanged — still configurable via `--cors` / `AGENTDB_HTTP_CORS` / `http.cors`).
+- **`db_archive_list` returns `Array<{ name, recordCount }>`** (was: `string[]`). Pass `details:false` to skip per-segment loads (`recordCount: -1` sentinel) for fast names-only listing. New `Collection.listArchiveSegmentsDetailed()` library method; existing `listArchiveSegments(): string[]` unchanged.
+- **`db.import()` / `db_import` returns structured `ImportResult`** — `{ collections, records, inserted, overwritten, skipped, errors[] }`. Records without `_id` are now counted under `skipped` (previously dropped silently); per-record insert/upsert throws are captured in `errors[]` instead of aborting. New `ImportResult` type exported. Behavioral change: `records` now means total input count — use `inserted + overwritten` for the prior "successful operations" semantic.
+- **`db_import` MCP tool emits `notifications/progress`** when the client supplies `progressToken` in `_meta`. The library `db.import()` already accepted `onProgress`; the MCP tool now forwards each event as a JSON-RPC progress notification with `{ progressToken, progress, total }`.
+
+```typescript
+// v2.2 — db_archive_list returned segment names
+const { segments } = await tool("db_archive_list", { collection: "logs" });
+// segments was string[]: ["archive/archive-2026-Q1.json", ...]
+
+// v2.2.1 — segments is Array<{ name, recordCount }>
+const { segments } = await tool("db_archive_list", { collection: "logs" });
+// segments is now: [{ name: "archive/archive-2026-Q1.json", recordCount: 142 }, ...]
+
+// v2.2.1 — fast names-only mode (skip per-segment loads)
+const { segments } = await tool("db_archive_list", { collection: "logs", details: false });
+// segments[i].recordCount is -1 sentinel
+```
+
+```typescript
+// v2.2.1 — structured ImportResult with per-outcome counts
+const result = await db.import(data, { overwrite: false });
+// { collections, records, inserted, overwritten, skipped, errors: [...] }
+// records is total input count; use inserted + overwritten for "succeeded"
+```
+
 ## v2.1 → v2.2 Migration
 
 v2.2 is **additive — no breaking changes**. Existing v2.1 code continues to work without changes.

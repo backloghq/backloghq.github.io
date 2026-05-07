@@ -112,6 +112,8 @@ Three levels: `read`, `write`, `admin`. Permission hierarchy: admin implies writ
 npx @backloghq/agentdb --http --auth-token secret --rate-limit 100 --cors https://app.example.com
 ```
 
+CORS request-header allow-list includes `Content-Type`, `Authorization`, `Mcp-Session-Id`, and (since v2.2.1) `MCP-Protocol-Version` — the latter is required by browser MCP clients after protocol-version negotiation. The response exposes `Mcp-Session-Id` via `Access-Control-Expose-Headers` (v2.2.1+) so browser fetch clients can read it back for subsequent requests. Origin policy is unchanged — configure via `--cors` / `AGENTDB_HTTP_CORS` / `http.cors`.
+
 ## Security Features
 
 - **Timing-safe** token comparison (prevents timing attacks)
